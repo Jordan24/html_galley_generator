@@ -6,10 +6,14 @@ class LabeledTextField extends StatelessWidget {
     super.key,
     required this.label,
     required this.controller,
+    this.maxLines = 1,
+    this.suffix,
   });
 
   final String label;
   final TextEditingController controller;
+  final int maxLines;
+  final Widget? suffix;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +33,9 @@ class LabeledTextField extends StatelessWidget {
           const SizedBox(height: 8),
           TextField(
             controller: controller,
+            maxLines: maxLines,
             decoration: InputDecoration(
+              suffixIcon: suffix,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 16,

@@ -29,13 +29,24 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
 
   // ── State ───────────────────────────────────────────────────────────────────
   File? _selectedPdf;
+  ArticleMetadata? _parsedMetadata;
 
   // Metadata controllers
   final _titleCtrl = TextEditingController();
-  final _authorCtrl = TextEditingController();
+  final _authorFullNameCtrl = TextEditingController();
+  final _authorOrcidCtrl = TextEditingController();
+  final _authorAffiliationCtrl = TextEditingController();
+  final _authorBioCtrl = TextEditingController();
   final _volumeCtrl = TextEditingController();
   final _issueCtrl = TextEditingController();
   final _articleIdCtrl = TextEditingController();
+  final _submissionIdCtrl = TextEditingController();
+  final _publicationIdCtrl = TextEditingController();
+  final _issueViewIdCtrl = TextEditingController();
+  final _pdfGalleyIdCtrl = TextEditingController();
+  final _publishedDateCtrl = TextEditingController();
+  final _submittedDateCtrl = TextEditingController();
+  final _modifiedDateCtrl = TextEditingController();
 
   // Settings controllers
   final _baseUrlCtrl = TextEditingController();
@@ -46,22 +57,29 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   void initState() {
     super.initState();
     _loadSettings();
-    for (final ctrl in [_titleCtrl, _authorCtrl, _volumeCtrl, _issueCtrl]) {
+    final controllers = [
+      _titleCtrl, _authorFullNameCtrl, _authorOrcidCtrl,
+      _authorAffiliationCtrl, _authorBioCtrl,
+      _volumeCtrl, _issueCtrl,
+      _articleIdCtrl, _submissionIdCtrl, _publicationIdCtrl, _issueViewIdCtrl,
+      _pdfGalleyIdCtrl, _publishedDateCtrl, _submittedDateCtrl, _modifiedDateCtrl,
+    ];
+    for (final ctrl in controllers) {
       ctrl.addListener(_rebuild);
     }
   }
 
   @override
   void dispose() {
-    for (final ctrl in [
-      _titleCtrl,
-      _authorCtrl,
-      _volumeCtrl,
-      _issueCtrl,
-      _articleIdCtrl,
-      _baseUrlCtrl,
-      _journalPathCtrl,
-    ]) {
+    final controllers = [
+      _titleCtrl, _authorFullNameCtrl, _authorOrcidCtrl,
+      _authorAffiliationCtrl, _authorBioCtrl,
+      _volumeCtrl, _issueCtrl,
+      _articleIdCtrl, _submissionIdCtrl, _publicationIdCtrl, _issueViewIdCtrl,
+      _pdfGalleyIdCtrl, _publishedDateCtrl, _submittedDateCtrl, _modifiedDateCtrl,
+      _baseUrlCtrl, _journalPathCtrl,
+    ];
+    for (final ctrl in controllers) {
       ctrl.dispose();
     }
     super.dispose();
@@ -70,13 +88,32 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   // ── Helpers ──────────────────────────────────────────────────────────────────
   void _rebuild() => setState(() {});
 
-  ArticleMetadata get _currentMetadata => ArticleMetadata(
-    title: _titleCtrl.text,
-    author: _authorCtrl.text,
-    volume: _volumeCtrl.text,
-    issue: _issueCtrl.text,
-    articleId: _articleIdCtrl.text,
-  );
+  ArticleMetadata get _currentMetadata {
+    final fullName = _authorFullNameCtrl.text;
+    final lastName = fullName.isNotEmpty ? fullName.split(' ').last.toUpperCase() : '';
+    
+    return ArticleMetadata(
+      title: _titleCtrl.text,
+      author: lastName,
+      authorFullName: fullName,
+      authorOrcid: _authorOrcidCtrl.text,
+      authorAffiliation: _authorAffiliationCtrl.text,
+      authorBio: _authorBioCtrl.text,
+      volume: _volumeCtrl.text,
+      issue: _issueCtrl.text,
+      articleId: _articleIdCtrl.text,
+      submissionId: _submissionIdCtrl.text,
+      publicationId: _publicationIdCtrl.text,
+      issueViewId: _issueViewIdCtrl.text,
+      pdfGalleyId: _pdfGalleyIdCtrl.text,
+      publishedDate: _publishedDateCtrl.text,
+      submittedDate: _submittedDateCtrl.text,
+      modifiedDate: _modifiedDateCtrl.text,
+      abstract_: _parsedMetadata?.abstract_ ?? '',
+      keywords: _parsedMetadata?.keywords ?? '',
+      articleBodyHtml: _parsedMetadata?.articleBodyHtml ?? '',
+    );
+  }
 
   JournalSettings get _currentSettings => JournalSettings(
     baseUrl: _baseUrlCtrl.text,
@@ -98,11 +135,17 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     try {
       final metadata = await _pdfParser.parse(file);
       setState(() {
+        _parsedMetadata = metadata;
         _titleCtrl.text = metadata.title;
-        _authorCtrl.text = metadata.author;
+        _authorFullNameCtrl.text = metadata.authorFullName;
+        _authorOrcidCtrl.text = metadata.authorOrcid;
+        _authorAffiliationCtrl.text = metadata.authorAffiliation;
+        _authorBioCtrl.text = metadata.authorBio;
         _volumeCtrl.text = metadata.volume;
         _issueCtrl.text = metadata.issue;
         _articleIdCtrl.text = metadata.articleId;
+        _submissionIdCtrl.text = metadata.submissionId;
+        _publishedDateCtrl.text = metadata.publishedDate;
       });
       _showSnackBar('PDF parsed successfully!');
     } catch (e) {
@@ -171,10 +214,20 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
                   flex: 3,
                   child: MetadataForm(
                     titleCtrl: _titleCtrl,
-                    authorCtrl: _authorCtrl,
+                    authorFullNameCtrl: _authorFullNameCtrl,
+                    authorOrcidCtrl: _authorOrcidCtrl,
+                    authorAffiliationCtrl: _authorAffiliationCtrl,
+                    authorBioCtrl: _authorBioCtrl,
                     volumeCtrl: _volumeCtrl,
                     issueCtrl: _issueCtrl,
                     articleIdCtrl: _articleIdCtrl,
+                    submissionIdCtrl: _submissionIdCtrl,
+                    publicationIdCtrl: _publicationIdCtrl,
+                    issueViewIdCtrl: _issueViewIdCtrl,
+                    pdfGalleyIdCtrl: _pdfGalleyIdCtrl,
+                    publishedDateCtrl: _publishedDateCtrl,
+                    submittedDateCtrl: _submittedDateCtrl,
+                    modifiedDateCtrl: _modifiedDateCtrl,
                   ),
                 ),
                 const SizedBox(width: 24),
