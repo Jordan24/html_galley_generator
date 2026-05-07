@@ -55,13 +55,28 @@ class HtmlGeneratorService {
     final articleBodyHtml = metadata.articleBodyHtml;
     
     // authorBio now contains HTML from the Quill editor.
-    // We prepend the author name to the first paragraph or block.
+    // We ensure the author name is present and bolded at the start.
     String authorBioHtml = '';
     if (metadata.authorBio.isNotEmpty) {
-      if (metadata.authorBio.startsWith('<p>')) {
-        authorBioHtml = metadata.authorBio.replaceFirst('<p>', '<p><strong>$authorFullName</strong> ');
+      final bio = metadata.authorBio;
+      final boldName = '<strong>$authorFullName</strong>';
+      
+      if (bio.startsWith('<p>')) {
+        if (bio.startsWith('<p>$boldName')) {
+          authorBioHtml = bio;
+        } else if (bio.startsWith('<p>$authorFullName')) {
+          authorBioHtml = bio.replaceFirst('<p>$authorFullName', '<p>$boldName');
+        } else {
+          authorBioHtml = bio;
+        }
       } else {
-        authorBioHtml = '<p><strong>$authorFullName</strong> ${metadata.authorBio}</p>';
+        if (bio.startsWith(boldName)) {
+          authorBioHtml = '<p>$bio</p>';
+        } else if (bio.startsWith(authorFullName)) {
+          authorBioHtml = '<p>$boldName${bio.substring(authorFullName.length)}</p>';
+        } else {
+          authorBioHtml = '<p>$bio</p>';
+        }
       }
     }
 
