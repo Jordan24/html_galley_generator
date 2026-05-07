@@ -1,0 +1,37 @@
+name: Build and Release Desktop Apps
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - name: Compress App
+        run: zip -r html_galley_generator-macos.zip build/macos/Build/Products/Release/html_galley_generator.app
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: html_galley_generator-macos.zip
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - name: Compress App
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath html_galley_generator-windows.zip
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: html_galley_generator-windows.zip
