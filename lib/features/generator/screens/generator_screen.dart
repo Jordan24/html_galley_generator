@@ -136,7 +136,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       final metadata = await _pdfParser.parse(file);
       setState(() {
         _parsedMetadata = metadata;
-        _titleCtrl.text = metadata.title;
+        _titleCtrl.text = metadata.title.replaceAll(RegExp(r'[^\x00-\x7F\u00C0-\u017F\u0180-\u024F]'), "'");
         _authorFullNameCtrl.text = metadata.authorFullName;
         _authorOrcidCtrl.text = metadata.authorOrcid;
         _authorAffiliationCtrl.text = metadata.authorAffiliation;

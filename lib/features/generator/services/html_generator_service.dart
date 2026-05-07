@@ -8,9 +8,9 @@ class HtmlGeneratorService {
     final auth = metadata.author.trim().replaceAll(' ', '+');
 
     String title = metadata.title.split(':').first.trim();
-    title = title
+    title = _clean(title)
         .replaceAll("'", '')
-        .replaceAll('\u2019', '')
+        .replaceAll('"', '')
         .replaceAll(' ', '+');
 
     return 'Vol+$vol+No+${iss}_${auth}_$title.html';
@@ -33,15 +33,15 @@ class HtmlGeneratorService {
     }
     final path = settings.journalPath.trim();
     
-    final title = metadata.title.trim();
+    final title = _clean(metadata.title);
     final shortTitle = title.split(':').first.trim();
     final articleId = metadata.articleId.trim();
     final publicationId = metadata.publicationId.trim();
     final issueViewId = metadata.issueViewId.trim();
     final pdfGalleyId = metadata.pdfGalleyId.trim();
-    final authorFullName = metadata.authorFullName.trim();
+    final authorFullName = _clean(metadata.authorFullName);
     final authorOrcid = metadata.authorOrcid.trim();
-    final authorAffiliation = metadata.authorAffiliation.trim();
+    final authorAffiliation = _clean(metadata.authorAffiliation);
     final volume = metadata.volume.trim();
     final issue = metadata.issue.trim();
     final publishedDate = metadata.publishedDate.trim();
@@ -50,10 +50,10 @@ class HtmlGeneratorService {
     final publishedDateSlash = publishedDate.replaceAll('-', '/');
     final publishedYear = publishedDate.isNotEmpty ? publishedDate.split("-").first : DateTime.now().year.toString();
     
-    final abstractHtml = metadata.abstract_.isEmpty ? '' : '<p>${metadata.abstract_}</p>';
-    final keywords = metadata.keywords;
+    final abstractHtml = metadata.abstract_.isEmpty ? '' : '<p>${_clean(metadata.abstract_)}</p>';
+    final keywords = _clean(metadata.keywords);
     final articleBodyHtml = metadata.articleBodyHtml;
-    final authorBioHtml = metadata.authorBio.isEmpty ? '' : '<p><strong>$authorFullName</strong> ${metadata.authorBio}</p>';
+    final authorBioHtml = metadata.authorBio.isEmpty ? '' : '<p><strong>$authorFullName</strong> ${_clean(metadata.authorBio)}</p>';
 
     // Generate dynamic subject tags
     final keywordList = keywords.split(RegExp(r'[,;]')).map((k) => k.trim()).where((k) => k.isNotEmpty);
@@ -675,5 +675,18 @@ $articleBodyHtml
 </body>
 </html>
     '''.replaceAll('https://transnationalasia.rice.edu', baseUrl).replaceAll('/ta/', '/$path/');
+  }
+  String _clean(String text) {
+    if (text.isEmpty) return '';
+    return text.trim()
+        .replaceAll('\uFFFD', "'")
+        .replaceAll(RegExp(r'[\u2018\u2019\u201A\u201B\u2032\u2035\u02BC\u02BD\u02C8\u02CA\u02CB\u00B4\u0060\u0090\u0091\u0092]'), "'")
+        .replaceAll(RegExp(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u0093\u0094\u00AB\u00BB]'), '"')
+        .replaceAll(RegExp(r'[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]'), '-')
+        .replaceAll('\uFB01', 'fi')
+        .replaceAll('\uFB02', 'fl')
+        .replaceAll(RegExp(r'[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]'), ' ')
+        .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ');
   }
 }

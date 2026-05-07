@@ -26,10 +26,10 @@ class PdfParserService {
     // 1. Fallback to PDF Metadata
     final info = document.documentInformation;
     if (info.title != null && info.title!.isNotEmpty) {
-      title = info.title!.trim();
+      title = _clean(info.title!);
     }
     if (info.author != null && info.author!.isNotEmpty) {
-      authorFullName = info.author!.trim();
+      authorFullName = _clean(info.author!);
     }
 
     bool isAbstract = false;
@@ -39,7 +39,7 @@ class PdfParserService {
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
-      final text = line.text.trim();
+      final text = _clean(line.text);
       final fontSize = line.fontSize;
 
       if (text.isEmpty) continue;
@@ -123,12 +123,12 @@ class PdfParserService {
       for (int i = lines.length - 1; i >= 0; i--) {
         final line = lines[i];
         if (bioRegex.hasMatch(line.text)) {
-          List<String> bioParts = [line.text.trim()];
+          List<String> bioParts = [_clean(line.text)];
           int j = i + 1;
           // Collect lines until a big gap, page number, or bibliography starts
           while (j < lines.length) {
             final nextLine = lines[j];
-            final nextText = nextLine.text.trim();
+            final nextText = _clean(nextLine.text);
             if (nextText.isEmpty) break;
             if (nextText.toLowerCase() == 'bibliography' || nextText == 'Bibliography') break;
             if (RegExp(r'^\d+$').hasMatch(nextText)) break; // Page number
@@ -180,19 +180,16 @@ class PdfParserService {
       }
     }
     
+    // Normalize to 0000-0000-0000-0000 format
     if (match != null) {
-      // Normalize to 0000-0000-0000-0000 format
       authorOrcid = match.group(1)!.replaceAll(RegExp(r'[\s\.]'), '-');
     }
 
     document.dispose();
 
-    // Cleaning and Formatting
-    title = _clean(title);
-    authorFullName = _clean(authorFullName);
-    abstractText = _clean(abstractText).replaceFirst('Abstract ', '').trim();
-    keywords = _clean(keywords).replaceFirst('Keywords ', '').trim();
-    authorBio = _clean(authorBio);
+    // Secondary cleaning/stripping
+    abstractText = abstractText.replaceFirst('Abstract ', '').trim();
+    keywords = keywords.replaceFirst('Keywords ', '').trim();
 
     return ArticleMetadata(
       title: title,
@@ -218,11 +215,24 @@ class PdfParserService {
   }
 
   String _clean(String text) {
+    if (text.isEmpty) return '';
     return text.trim()
-      .replaceAll('\u2019', "'")
-      .replaceAll('\u201C', '"')
-      .replaceAll('\u201D', '"')
-      .replaceAll('  ', ' ');
+      // Unicode replacement character (often shows as bars/question marks)
+      .replaceAll('\uFFFD', "'")
+      // Single quotes, smart quotes, backticks, and common mis-encodings (CP1252)
+      .replaceAll(RegExp(r'[\u2018\u2019\u201A\u201B\u2032\u2035\u02BC\u02BD\u02C8\u02CA\u02CB\u00B4\u0060\u0090\u0091\u0092]'), "'")
+      // Double quotes
+      .replaceAll(RegExp(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u0093\u0094\u00AB\u00BB]'), '"')
+      // Dashes and hyphens
+      .replaceAll(RegExp(r'[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]'), '-')
+      // Ligatures
+      .replaceAll('\uFB01', 'fi')
+      .replaceAll('\uFB02', 'fl')
+      // Spaces and invisible characters
+      .replaceAll(RegExp(r'[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]'), ' ')
+      // Control characters (except newlines)
+      .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
+      .replaceAll(RegExp(r'\s+'), ' ');
   }
 
   String _processBodyLines(List<String> lines) {
