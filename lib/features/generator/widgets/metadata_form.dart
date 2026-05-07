@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/orcid_service.dart';
 import 'labeled_text_field.dart';
@@ -11,7 +12,7 @@ class MetadataForm extends StatefulWidget {
     required this.authorFullNameCtrl,
     required this.authorOrcidCtrl,
     required this.authorAffiliationCtrl,
-    required this.authorBioCtrl,
+    required this.authorBioQuill,
     required this.volumeCtrl,
     required this.issueCtrl,
     required this.articleIdCtrl,
@@ -28,7 +29,7 @@ class MetadataForm extends StatefulWidget {
   final TextEditingController authorFullNameCtrl;
   final TextEditingController authorOrcidCtrl;
   final TextEditingController authorAffiliationCtrl;
-  final TextEditingController authorBioCtrl;
+  final QuillController authorBioQuill;
   final TextEditingController volumeCtrl;
   final TextEditingController issueCtrl;
   final TextEditingController articleIdCtrl;
@@ -93,7 +94,7 @@ class _MetadataFormState extends State<MetadataForm> {
           .replaceAll(RegExp(r'[\d\*†‡§¶#]'), '')
           .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
-      
+
       final cleanAff = widget.authorAffiliationCtrl.text
           .replaceAll(RegExp(r'[\*†‡§¶#]'), '')
           .replaceAll(RegExp(r'\s+'), ' ')
@@ -116,8 +117,12 @@ class _MetadataFormState extends State<MetadataForm> {
             action: SnackBarAction(
               label: 'Search Web',
               onPressed: () {
-                final query = Uri.encodeComponent('text:"$cleanName" AND affiliation-org-name:"$cleanAff"');
-                final url = Uri.parse('https://orcid.org/orcid-search/search?searchQuery=$query');
+                final query = Uri.encodeComponent(
+                  'text:"$cleanName" AND affiliation-org-name:"$cleanAff"',
+                );
+                final url = Uri.parse(
+                  'https://orcid.org/orcid-search/search?searchQuery=$query',
+                );
                 launchUrl(url);
               },
             ),
@@ -126,7 +131,11 @@ class _MetadataFormState extends State<MetadataForm> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Search failed: $e. If on web, this may be a CORS restriction.')),
+        SnackBar(
+          content: Text(
+            'Search failed: $e. If on web, this may be a CORS restriction.',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isSearchingOrcid = false);
@@ -152,7 +161,10 @@ class _MetadataFormState extends State<MetadataForm> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 24),
-            LabeledTextField(label: 'Article Title', controller: widget.titleCtrl),
+            LabeledTextField(
+              label: 'Article Title',
+              controller: widget.titleCtrl,
+            ),
             Row(
               children: [
                 Expanded(
@@ -190,7 +202,9 @@ class _MetadataFormState extends State<MetadataForm> {
                                 padding: const EdgeInsets.only(right: 8.0),
                                 child: InkWell(
                                   onTap: () {
-                                    final url = Uri.parse('https://orcid.org/$orcid');
+                                    final url = Uri.parse(
+                                      'https://orcid.org/$orcid',
+                                    );
                                     launchUrl(url);
                                   },
                                   child: Container(
@@ -219,35 +233,154 @@ class _MetadataFormState extends State<MetadataForm> {
                 ),
               ],
             ),
-            LabeledTextField(label: 'Author Affiliation', controller: widget.authorAffiliationCtrl),
-            LabeledTextField(label: 'Author Bio (HTML)', controller: widget.authorBioCtrl, maxLines: 3),
+            LabeledTextField(
+              label: 'Author Affiliation',
+              controller: widget.authorAffiliationCtrl,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Author Bio',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF475569),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Column(
+                children: [
+                  QuillSimpleToolbar(
+                    controller: widget.authorBioQuill,
+                    config: const QuillSimpleToolbarConfig(
+                      showListNumbers: false,
+                      showListBullets: false,
+                      showCodeBlock: false,
+                      showQuote: false,
+                      showAlignmentButtons: false,
+                      showLink: false,
+                      showUndo: false,
+                      showRedo: false,
+                      showBoldButton: true,
+                      showItalicButton: true,
+                      showUnderLineButton: false,
+                      showStrikeThrough: false,
+                      showColorButton: false,
+                      showBackgroundColorButton: false,
+                      showClearFormat: false,
+                      showFontFamily: false,
+                      showFontSize: false,
+                      showSubscript: false,
+                      showSuperscript: false,
+                      showSearchButton: false,
+                      showIndent: false,
+                      showInlineCode: false,
+                      showListCheck: false,
+                      showHeaderStyle: false,
+                    ),
+                  ),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFCBD5E1),
+                  ),
+                  Container(
+                    height: 150,
+                    padding: const EdgeInsets.all(12),
+                    child: QuillEditor.basic(
+                      controller: widget.authorBioQuill,
+                      config: const QuillEditorConfig(
+                        placeholder: 'Enter author biography here...',
+                        padding: EdgeInsets.zero,
+                        expands: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: LabeledTextField(label: 'Volume', controller: widget.volumeCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Volume',
+                    controller: widget.volumeCtrl,
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: LabeledTextField(label: 'Issue', controller: widget.issueCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Issue',
+                    controller: widget.issueCtrl,
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: LabeledTextField(label: 'Article ID', controller: widget.articleIdCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Article ID',
+                    controller: widget.articleIdCtrl,
+                  ),
+                ),
               ],
             ),
             Row(
               children: [
-                Expanded(child: LabeledTextField(label: 'Submission ID', controller: widget.submissionIdCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Submission ID',
+                    controller: widget.submissionIdCtrl,
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: LabeledTextField(label: 'Publication ID', controller: widget.publicationIdCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Publication ID',
+                    controller: widget.publicationIdCtrl,
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: LabeledTextField(label: 'Issue View ID', controller: widget.issueViewIdCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Issue View ID',
+                    controller: widget.issueViewIdCtrl,
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: LabeledTextField(label: 'PDF Galley ID', controller: widget.pdfGalleyIdCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'PDF Galley ID',
+                    controller: widget.pdfGalleyIdCtrl,
+                  ),
+                ),
               ],
             ),
             Row(
               children: [
-                Expanded(child: LabeledTextField(label: 'Published Date (YYYY-MM-DD)', controller: widget.publishedDateCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Published Date (YYYY-MM-DD)',
+                    controller: widget.publishedDateCtrl,
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: LabeledTextField(label: 'Submitted Date (YYYY-MM-DD)', controller: widget.submittedDateCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Submitted Date (YYYY-MM-DD)',
+                    controller: widget.submittedDateCtrl,
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: LabeledTextField(label: 'Modified Date (YYYY-MM-DD)', controller: widget.modifiedDateCtrl)),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Modified Date (YYYY-MM-DD)',
+                    controller: widget.modifiedDateCtrl,
+                  ),
+                ),
               ],
             ),
           ],

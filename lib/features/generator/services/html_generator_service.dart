@@ -53,7 +53,17 @@ class HtmlGeneratorService {
     final abstractHtml = metadata.abstract_.isEmpty ? '' : '<p>${_clean(metadata.abstract_)}</p>';
     final keywords = _clean(metadata.keywords);
     final articleBodyHtml = metadata.articleBodyHtml;
-    final authorBioHtml = metadata.authorBio.isEmpty ? '' : '<p><strong>$authorFullName</strong> ${_clean(metadata.authorBio)}</p>';
+    
+    // authorBio now contains HTML from the Quill editor.
+    // We prepend the author name to the first paragraph or block.
+    String authorBioHtml = '';
+    if (metadata.authorBio.isNotEmpty) {
+      if (metadata.authorBio.startsWith('<p>')) {
+        authorBioHtml = metadata.authorBio.replaceFirst('<p>', '<p><strong>$authorFullName</strong> ');
+      } else {
+        authorBioHtml = '<p><strong>$authorFullName</strong> ${metadata.authorBio}</p>';
+      }
+    }
 
     // Generate dynamic subject tags
     final keywordList = keywords.split(RegExp(r'[,;]')).map((k) => k.trim()).where((k) => k.isNotEmpty);
@@ -676,6 +686,7 @@ $articleBodyHtml
 </html>
     '''.replaceAll('https://transnationalasia.rice.edu', baseUrl).replaceAll('/ta/', '/$path/');
   }
+
   String _clean(String text) {
     if (text.isEmpty) return '';
     return text.trim()

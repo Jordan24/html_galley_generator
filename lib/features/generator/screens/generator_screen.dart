@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 
 import '../data/settings_repository.dart';
 import '../models/article_metadata.dart';
@@ -36,7 +38,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   final _authorFullNameCtrl = TextEditingController();
   final _authorOrcidCtrl = TextEditingController();
   final _authorAffiliationCtrl = TextEditingController();
-  final _authorBioCtrl = TextEditingController();
+  final _authorBioQuill = QuillController.basic();
   final _volumeCtrl = TextEditingController();
   final _issueCtrl = TextEditingController();
   final _articleIdCtrl = TextEditingController();
@@ -59,7 +61,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     _loadSettings();
     final controllers = [
       _titleCtrl, _authorFullNameCtrl, _authorOrcidCtrl,
-      _authorAffiliationCtrl, _authorBioCtrl,
+      _authorAffiliationCtrl,
       _volumeCtrl, _issueCtrl,
       _articleIdCtrl, _submissionIdCtrl, _publicationIdCtrl, _issueViewIdCtrl,
       _pdfGalleyIdCtrl, _publishedDateCtrl, _submittedDateCtrl, _modifiedDateCtrl,
@@ -67,13 +69,14 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     for (final ctrl in controllers) {
       ctrl.addListener(_rebuild);
     }
+    _authorBioQuill.addListener(_rebuild);
   }
 
   @override
   void dispose() {
     final controllers = [
       _titleCtrl, _authorFullNameCtrl, _authorOrcidCtrl,
-      _authorAffiliationCtrl, _authorBioCtrl,
+      _authorAffiliationCtrl,
       _volumeCtrl, _issueCtrl,
       _articleIdCtrl, _submissionIdCtrl, _publicationIdCtrl, _issueViewIdCtrl,
       _pdfGalleyIdCtrl, _publishedDateCtrl, _submittedDateCtrl, _modifiedDateCtrl,
@@ -82,6 +85,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     for (final ctrl in controllers) {
       ctrl.dispose();
     }
+    _authorBioQuill.dispose();
     super.dispose();
   }
 
@@ -92,13 +96,18 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     final fullName = _authorFullNameCtrl.text;
     final lastName = fullName.isNotEmpty ? fullName.split(' ').last.toUpperCase() : '';
     
+    // Convert Quill Delta to HTML for metadata
+    final delta = _authorBioQuill.document.toDelta();
+    final converter = QuillDeltaToHtmlConverter(delta.toJson());
+    final bioHtml = converter.convert();
+
     return ArticleMetadata(
       title: _titleCtrl.text,
       author: lastName,
       authorFullName: fullName,
       authorOrcid: _authorOrcidCtrl.text,
       authorAffiliation: _authorAffiliationCtrl.text,
-      authorBio: _authorBioCtrl.text,
+      authorBio: bioHtml,
       volume: _volumeCtrl.text,
       issue: _issueCtrl.text,
       articleId: _articleIdCtrl.text,
@@ -140,7 +149,10 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _authorFullNameCtrl.text = metadata.authorFullName;
         _authorOrcidCtrl.text = metadata.authorOrcid;
         _authorAffiliationCtrl.text = metadata.authorAffiliation;
-        _authorBioCtrl.text = metadata.authorBio;
+        
+        // Reset and populate Quill editor
+        _authorBioQuill.document = Document()..insert(0, metadata.authorBio);
+        
         _volumeCtrl.text = metadata.volume;
         _issueCtrl.text = metadata.issue;
         _articleIdCtrl.text = metadata.articleId;
@@ -217,7 +229,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
                     authorFullNameCtrl: _authorFullNameCtrl,
                     authorOrcidCtrl: _authorOrcidCtrl,
                     authorAffiliationCtrl: _authorAffiliationCtrl,
-                    authorBioCtrl: _authorBioCtrl,
+                    authorBioQuill: _authorBioQuill,
                     volumeCtrl: _volumeCtrl,
                     issueCtrl: _issueCtrl,
                     articleIdCtrl: _articleIdCtrl,
