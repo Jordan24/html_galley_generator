@@ -37,7 +37,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Future<void> _loadContent() async {
     try {
-      final html = await _htmlGenerator.buildArticleMain(widget.metadata, widget.settings);
+      final html = await _htmlGenerator.buildArticleMain(
+        widget.metadata,
+        widget.settings,
+      );
       final delta = HtmlToDelta().convert(html);
       setState(() {
         _controller = QuillController(
@@ -73,7 +76,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       final suggestedName = _htmlGenerator.buildFileName(widget.metadata);
       final saveLocation = await getSaveLocation(suggestedName: suggestedName);
-      
+
       if (saveLocation != null) {
         await File(saveLocation.path).writeAsString(fullHtml);
         if (mounted) {
@@ -84,9 +87,9 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
       }
     } finally {
       setState(() => _isSaving = false);
@@ -104,9 +107,12 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF1F5F9), // Light blue-grey background
       appBar: AppBar(
-        title: const Text('Edit HTML Galley'),
+        title: const Text(
+          'Edit HTML Galley',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF334155),
@@ -130,7 +136,10 @@ class _EditorScreenState extends State<EditorScreen> {
                 icon: const Icon(Icons.save, size: 18),
                 label: const Text('Save Galley'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF334155),
+                  backgroundColor: const Color(0xFF1D2B3E), // Matching theme
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ),
@@ -140,41 +149,114 @@ class _EditorScreenState extends State<EditorScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                QuillSimpleToolbar(
-                  controller: _controller,
-                  config: const QuillSimpleToolbarConfig(
-                    multiRowsDisplay: false,
-                    showUndo: true,
-                    showRedo: true,
-                    showBoldButton: true,
-                    showItalicButton: true,
-                    showUnderLineButton: true,
-                    showStrikeThrough: true,
-                    showColorButton: true,
-                    showBackgroundColorButton: true,
-                    showListNumbers: true,
-                    showListBullets: true,
-                    showListCheck: false,
-                    showCodeBlock: true,
-                    showQuote: true,
-                    showIndent: true,
-                    showLink: true,
-                    showDirection: false,
-                    showSearchButton: true,
-                    showSubscript: false,
-                    showSuperscript: false,
+                Container(
+                  color: Colors.white,
+                  child: QuillSimpleToolbar(
+                    controller: _controller,
+                    config: const QuillSimpleToolbarConfig(
+                      multiRowsDisplay: false,
+                      showUndo: true,
+                      showRedo: true,
+                      showBoldButton: true,
+                      showItalicButton: true,
+                      showUnderLineButton: true,
+                      showStrikeThrough: true,
+                      showColorButton: true,
+                      showBackgroundColorButton: true,
+                      showListNumbers: true,
+                      showListBullets: true,
+                      showListCheck: false,
+                      showCodeBlock: true,
+                      showQuote: true,
+                      showIndent: true,
+                      showLink: true,
+                      showDirection: false,
+                      showSearchButton: true,
+                      showSubscript: false,
+                      showSuperscript: false,
+                    ),
                   ),
                 ),
                 const Divider(height: 1),
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    child: QuillEditor.basic(
-                      controller: _controller,
-                      config: const QuillEditorConfig(
-                        padding: EdgeInsets.zero,
-                        autoFocus: true,
-                        expands: true,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 40,
+                      horizontal: 20,
+                    ),
+                    child: Center(
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 900),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(60),
+                        child: QuillEditor.basic(
+                          controller: _controller,
+                          config: QuillEditorConfig(
+                            padding: EdgeInsets.zero,
+                            autoFocus: true,
+                            expands: false,
+                            scrollable: false,
+                            customStyles: DefaultStyles(
+                              h1: DefaultTextBlockStyle(
+                                const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1D2B3E),
+                                  height: 1.2,
+                                ),
+                                const HorizontalSpacing(0, 0),
+                                const VerticalSpacing(24, 16),
+                                const VerticalSpacing(0, 0),
+                                null,
+                              ),
+                              h2: DefaultTextBlockStyle(
+                                const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1D2B3E),
+                                  height: 1.2,
+                                ),
+                                const HorizontalSpacing(0, 0),
+                                const VerticalSpacing(20, 12),
+                                const VerticalSpacing(0, 0),
+                                null,
+                              ),
+                              h3: DefaultTextBlockStyle(
+                                const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1D2B3E),
+                                  height: 1.2,
+                                ),
+                                const HorizontalSpacing(0, 0),
+                                const VerticalSpacing(16, 8),
+                                const VerticalSpacing(0, 0),
+                                null,
+                              ),
+                              paragraph: DefaultTextBlockStyle(
+                                const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF334155),
+                                  height: 1.6,
+                                ),
+                                const HorizontalSpacing(0, 0),
+                                const VerticalSpacing(8, 8),
+                                const VerticalSpacing(0, 0),
+                                null,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

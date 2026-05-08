@@ -7,7 +7,7 @@ void main() {
     final bytes = await File('../COLLINS+Lauren_Transnational+Asia_V7I1_Archives+as+Bridges_v2.pdf').readAsBytes();
     final document = PdfDocument(inputBytes: bytes);
     
-    final infoTitle = document.documentInformation.title ?? '';
+    final infoTitle = document.documentInformation.title;
     final buffer = StringBuffer();
     buffer.writeln('TITLE: $infoTitle');
     for (int j = 0; j < infoTitle.length; j++) {

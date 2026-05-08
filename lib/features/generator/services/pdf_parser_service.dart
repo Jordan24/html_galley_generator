@@ -22,6 +22,7 @@ class PdfParserService {
     String authorBio = '';
     List<String> bodyLines = [];
     List<String> referenceLines = [];
+    List<String> footnoteLines = [];
 
     // 1. Fallback to PDF Metadata
     final info = document.documentInformation;
@@ -35,6 +36,7 @@ class PdfParserService {
     bool isAbstract = false;
     bool isKeywords = false;
     bool isReferences = false;
+    bool isFootnotes = false;
     List<String> titleLines = [];
 
     for (int i = 0; i < lines.length; i++) {
@@ -121,6 +123,13 @@ class PdfParserService {
         isReferences = true;
         isAbstract = false;
         isKeywords = false;
+        isFootnotes = false;
+        continue;
+      } else if (lowerText == 'footnotes' || lowerText == 'notes') {
+        isFootnotes = true;
+        isAbstract = false;
+        isKeywords = false;
+        isReferences = false;
         continue;
       }
 
@@ -131,6 +140,8 @@ class PdfParserService {
         keywords += text;
       } else if (isReferences) {
         referenceLines.add(text);
+      } else if (isFootnotes) {
+        footnoteLines.add(text);
       } else if (title.isNotEmpty && authorFullName.isNotEmpty && fontSize >= 8.5 && fontSize <= 13.5) {
         // Body content - include headers (larger font)
         if (text.length > 3) {
@@ -211,7 +222,7 @@ class PdfParserService {
       keywords: keywords,
       articleBodyHtml: _processBodyLines(bodyLines),
       articleBibliography: _processReferenceLines(referenceLines),
-      articleFootnotes: '', // Footnotes are harder to extract reliably without more advanced logic
+      articleFootnotes: _processFootnoteLines(footnoteLines),
       authorOrcid: authorOrcid,
       authorAffiliation: authorAffiliation,
       authorBio: authorBio,
@@ -303,6 +314,17 @@ class PdfParserService {
     for (final line in lines) {
       if (line.trim().isEmpty) continue;
       buffer.writeln('<div class="csl-entry">${line.trim()}</div>');
+    }
+    return buffer.toString();
+  }
+
+  String _processFootnoteLines(List<String> lines) {
+    if (lines.isEmpty) return '';
+    final buffer = StringBuffer();
+    buffer.writeln('<h2>Notes</h2>');
+    for (final line in lines) {
+      if (line.trim().isEmpty) continue;
+      buffer.writeln('<p>${line.trim()}</p>');
     }
     return buffer.toString();
   }

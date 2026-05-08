@@ -29,16 +29,16 @@ void main() async {
     articleId = match.group(3) ?? '';
   }
 
-  print('Title: \$title');
-  print('Author: \$author');
-  print('Volume: \$vol');
-  print('Issue: \$iss');
-  print('Article ID: \$articleId');
+  print('Title: $title');
+  print('Author: $author');
+  print('Volume: $vol');
+  print('Issue: $iss');
+  print('Article ID: $articleId');
 
   String authSafe = author.replaceAll(' ', '+');
   String titleSafe = title.replaceAll(' ', '+');
-  String generatedFileName = 'Vol+\$vol+No+\$iss_\${authSafe}_\${titleSafe}.html';
-  print('Filename: \$generatedFileName');
+  String generatedFileName = 'Vol+$vol+No+${iss}_${authSafe}_$titleSafe.html';
+  print('Filename: $generatedFileName');
 
   document.dispose();
 }
