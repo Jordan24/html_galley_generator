@@ -283,12 +283,12 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
                   onFilePicked: _processFile,
                 ),
                 const SizedBox(height: 32),
-                _buildFormLayout(isWide, isMedium),
-                const SizedBox(height: 32),
                 OutputPreviewBar(
                   fileName: fileName,
                   onGenerate: _generateHtml,
                 ),
+                const SizedBox(height: 32),
+                _buildFormLayout(isWide, isMedium),
               ],
             ),
           );
