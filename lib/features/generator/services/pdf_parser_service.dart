@@ -237,9 +237,18 @@ class PdfParserService {
 
     document.dispose();
 
-    // Secondary cleaning/stripping
-    abstractText = abstractText.replaceFirst('Abstract ', '').trim();
-    keywords = keywords.replaceFirst('Keywords ', '').trim();
+    final consolidatedBody = StringBuffer();
+    if (abstractText.isNotEmpty) {
+      consolidatedBody.writeln('<h2>Abstract</h2>');
+      consolidatedBody.writeln('<p>${abstractText.replaceFirst('Abstract ', '').trim()}</p>');
+    }
+    if (keywords.isNotEmpty) {
+      consolidatedBody.writeln('<h2>Keywords</h2>');
+      consolidatedBody.writeln('<p>${keywords.replaceFirst('Keywords ', '').trim()}</p>');
+    }
+    consolidatedBody.writeln(_processBodyLines(bodyLines));
+    consolidatedBody.writeln(_processReferenceLines(referenceLines));
+    consolidatedBody.writeln(_processFootnoteLines(footnoteLines));
 
     return ArticleMetadata(
       title: title,
@@ -247,11 +256,8 @@ class PdfParserService {
       authorFullName: authorFullName,
       authorFirstName: authorFullName.isNotEmpty ? authorFullName.split(' ').first : '',
       authorLastName: authorFullName.isNotEmpty ? authorFullName.split(' ').last : '',
-      abstract_: abstractText,
-      keywords: keywords,
-      articleBodyHtml: _processBodyLines(bodyLines),
-      articleBibliography: _processReferenceLines(referenceLines),
-      articleFootnotes: _processFootnoteLines(footnoteLines),
+      keywords: keywords.replaceFirst('Keywords ', '').trim(),
+      articleBody: consolidatedBody.toString(),
       authorOrcid: authorOrcid,
       authorAffiliation: authorAffiliation,
       authorBio: authorBio,

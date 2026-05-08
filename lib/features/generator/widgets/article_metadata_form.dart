@@ -17,12 +17,9 @@ class ArticleMetadataForm extends StatelessWidget {
     required this.publishYearCtrl,
     required this.submittedDateCtrl,
     required this.modifiedDateCtrl,
-    required this.articleBibliographyCtrl,
-    required this.articleFootnotesCtrl,
     required this.titleMainCtrl,
-    required this.abstractCtrl,
     required this.keywordsCtrl,
-    required this.articleBodyHtmlCtrl,
+    required this.articleBodyCtrl,
   });
 
   final TextEditingController titleCtrl;
@@ -38,12 +35,9 @@ class ArticleMetadataForm extends StatelessWidget {
   final TextEditingController publishYearCtrl;
   final TextEditingController submittedDateCtrl;
   final TextEditingController modifiedDateCtrl;
-  final TextEditingController articleBibliographyCtrl;
-  final TextEditingController articleFootnotesCtrl;
   final TextEditingController titleMainCtrl;
-  final TextEditingController abstractCtrl;
   final TextEditingController keywordsCtrl;
-  final TextEditingController articleBodyHtmlCtrl;
+  final TextEditingController articleBodyCtrl;
 
   @override
   Widget build(BuildContext context) {
@@ -173,32 +167,14 @@ class ArticleMetadataForm extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             LabeledTextField(
-              label: 'Abstract',
-              controller: abstractCtrl,
-              maxLines: 5,
-            ),
-            const SizedBox(height: 16),
-            LabeledTextField(
-              label: 'Keywords',
+              label: 'Keywords (comma-separated)',
               controller: keywordsCtrl,
             ),
             const SizedBox(height: 16),
             LabeledTextField(
               label: 'Article Body (HTML)',
-              controller: articleBodyHtmlCtrl,
-              maxLines: 15,
-            ),
-            const SizedBox(height: 16),
-            LabeledTextField(
-              label: 'Article Bibliography (HTML)',
-              controller: articleBibliographyCtrl,
-              maxLines: 5,
-            ),
-            const SizedBox(height: 16),
-            LabeledTextField(
-              label: 'Article Footnotes (HTML)',
-              controller: articleFootnotesCtrl,
-              maxLines: 3,
+              controller: articleBodyCtrl,
+              maxLines: 25,
             ),
           ],
         ),

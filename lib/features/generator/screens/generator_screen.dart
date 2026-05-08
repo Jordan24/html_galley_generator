@@ -7,6 +7,7 @@ import '../data/settings_repository.dart';
 import '../models/article_metadata.dart';
 import '../models/journal_settings.dart';
 import '../services/html_generator_service.dart';
+import '../services/ojs_scraper_service.dart';
 import '../services/pdf_parser_service.dart';
 import '../widgets/article_metadata_form.dart';
 import '../widgets/author_metadata_form.dart';
@@ -29,6 +30,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   final _settingsRepo = SettingsRepository();
   final _pdfParser = PdfParserService();
   final _htmlGenerator = HtmlGeneratorService();
+  final _ojsScraper = OjsScraperService();
 
   File? _selectedPdf;
 
@@ -53,12 +55,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   final _publishYearCtrl = TextEditingController();
   final _submittedDateCtrl = TextEditingController();
   final _modifiedDateCtrl = TextEditingController();
-  final _articleBibliographyCtrl = TextEditingController();
-  final _articleFootnotesCtrl = TextEditingController();
   final _titleMainCtrl = TextEditingController();
-  final _abstractCtrl = TextEditingController();
   final _keywordsCtrl = TextEditingController();
-  final _articleBodyHtmlCtrl = TextEditingController();
+  final _articleBodyCtrl = TextEditingController();
 
   // Settings controllers
   final _journalBaseUrlCtrl = TextEditingController();
@@ -93,12 +92,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       _publishYearCtrl,
       _submittedDateCtrl,
       _modifiedDateCtrl,
-      _articleBibliographyCtrl,
-      _articleFootnotesCtrl,
       _titleMainCtrl,
-      _abstractCtrl,
       _keywordsCtrl,
-      _articleBodyHtmlCtrl,
+      _articleBodyCtrl,
       _journalBaseUrlCtrl,
       _journalPathCtrl,
       _journalNameCtrl,
@@ -113,6 +109,49 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     }
     _titleCtrl.addListener(_onTitleChanged);
     _authorBioQuill.addListener(_onFieldChanged);
+    
+    // Auto-fill listeners
+    _articleIdCtrl.addListener(_onAutoFillTriggerChanged);
+    _journalBaseUrlCtrl.addListener(_onAutoFillTriggerChanged);
+    _journalPathCtrl.addListener(_onAutoFillTriggerChanged);
+  }
+
+  bool _isScraping = false;
+
+  void _onAutoFillTriggerChanged() {
+    if (_articleIdCtrl.text.isNotEmpty && 
+        _journalBaseUrlCtrl.text.isNotEmpty && 
+        _journalPathCtrl.text.isNotEmpty &&
+        _pdfGalleyIdCtrl.text.isEmpty &&
+        !_isScraping) {
+      _autoFillPdfGalleyId();
+    }
+    _onFieldChanged();
+  }
+
+  Future<void> _autoFillPdfGalleyId() async {
+    if (_isScraping) return;
+    
+    final articleId = _articleIdCtrl.text;
+    final baseUrl = _journalBaseUrlCtrl.text;
+    final path = _journalPathCtrl.text;
+
+    setState(() => _isScraping = true);
+
+    final galleyId = await _ojsScraper.scrapePdfGalleyId(
+      baseUrl: baseUrl,
+      journalPath: path,
+      articleId: articleId,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isScraping = false;
+        if (galleyId != null && _pdfGalleyIdCtrl.text.isEmpty) {
+          _pdfGalleyIdCtrl.text = galleyId;
+        }
+      });
+    }
   }
 
   void _onTitleChanged() {
@@ -152,12 +191,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       _publishYearCtrl,
       _submittedDateCtrl,
       _modifiedDateCtrl,
-      _articleBibliographyCtrl,
-      _articleFootnotesCtrl,
       _titleMainCtrl,
-      _abstractCtrl,
       _keywordsCtrl,
-      _articleBodyHtmlCtrl,
+      _articleBodyCtrl,
       _journalBaseUrlCtrl,
       _journalPathCtrl,
       _journalNameCtrl,
@@ -207,11 +243,8 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       publishYear: _publishYearCtrl.text,
       submittedDate: _submittedDateCtrl.text,
       modifiedDate: _modifiedDateCtrl.text,
-      abstract_: _abstractCtrl.text,
       keywords: _keywordsCtrl.text,
-      articleBodyHtml: _articleBodyHtmlCtrl.text,
-      articleBibliography: _articleBibliographyCtrl.text,
-      articleFootnotes: _articleFootnotesCtrl.text,
+      articleBody: _articleBodyCtrl.text,
       titleMain: _titleMainCtrl.text,
     );
   }
@@ -272,12 +305,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _publishYearCtrl.text = metadata.publishYear;
         _submittedDateCtrl.text = metadata.submittedDate;
         _modifiedDateCtrl.text = metadata.modifiedDate;
-        _articleBibliographyCtrl.text = metadata.articleBibliography;
-        _articleFootnotesCtrl.text = metadata.articleFootnotes;
         _titleMainCtrl.text = metadata.titleMain;
-        _abstractCtrl.text = metadata.abstract_;
         _keywordsCtrl.text = metadata.keywords;
-        _articleBodyHtmlCtrl.text = metadata.articleBodyHtml;
+        _articleBodyCtrl.text = metadata.articleBody;
       });
       _showSnackBar('PDF parsed successfully!');
     } catch (e) {
@@ -375,12 +405,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       publishYearCtrl: _publishYearCtrl,
       submittedDateCtrl: _submittedDateCtrl,
       modifiedDateCtrl: _modifiedDateCtrl,
-      articleBibliographyCtrl: _articleBibliographyCtrl,
-      articleFootnotesCtrl: _articleFootnotesCtrl,
       titleMainCtrl: _titleMainCtrl,
-      abstractCtrl: _abstractCtrl,
       keywordsCtrl: _keywordsCtrl,
-      articleBodyHtmlCtrl: _articleBodyHtmlCtrl,
+      articleBodyCtrl: _articleBodyCtrl,
     );
 
     final settingsForm = SettingsForm(

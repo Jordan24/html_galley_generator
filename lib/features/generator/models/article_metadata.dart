@@ -19,11 +19,8 @@ class ArticleMetadata {
   final String publishYear; // e.g. 2025
   final String submittedDate; // ISO8601 e.g. 2024-12-28
   final String modifiedDate; // ISO8601 e.g. 2025-11-10
-  final String abstract_; // Full abstract text (plain text or HTML)
   final String keywords; // Comma-separated keywords
-  final String articleBodyHtml; // Full article body HTML content
-  final String articleBibliography; // HTML or plain text bibliography
-  final String articleFootnotes; // HTML or plain text footnotes
+  final String articleBody; // Full article body HTML content (includes abstract, keywords, bib, footnotes)
   final String titleMain; // Typically same as journalName or similar
 
   const ArticleMetadata({
@@ -47,11 +44,8 @@ class ArticleMetadata {
     this.publishYear = '',
     this.submittedDate = '',
     this.modifiedDate = '',
-    this.abstract_ = '',
     this.keywords = '',
-    this.articleBodyHtml = '',
-    this.articleBibliography = '',
-    this.articleFootnotes = '',
+    this.articleBody = '',
     this.titleMain = '',
   });
 
@@ -76,11 +70,8 @@ class ArticleMetadata {
     String? publishYear,
     String? submittedDate,
     String? modifiedDate,
-    String? abstract_,
     String? keywords,
-    String? articleBodyHtml,
-    String? articleBibliography,
-    String? articleFootnotes,
+    String? articleBody,
     String? titleMain,
   }) {
     return ArticleMetadata(
@@ -104,11 +95,8 @@ class ArticleMetadata {
       publishYear: publishYear ?? this.publishYear,
       submittedDate: submittedDate ?? this.submittedDate,
       modifiedDate: modifiedDate ?? this.modifiedDate,
-      abstract_: abstract_ ?? this.abstract_,
       keywords: keywords ?? this.keywords,
-      articleBodyHtml: articleBodyHtml ?? this.articleBodyHtml,
-      articleBibliography: articleBibliography ?? this.articleBibliography,
-      articleFootnotes: articleFootnotes ?? this.articleFootnotes,
+      articleBody: articleBody ?? this.articleBody,
       titleMain: titleMain ?? this.titleMain,
     );
   }

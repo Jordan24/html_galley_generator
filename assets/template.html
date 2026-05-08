@@ -16,7 +16,7 @@
 	<meta name="DC.Date.issued" scheme="ISO8601" content="{issuedDate}" />
 	<meta name="DC.Date.modified" scheme="ISO8601" content="{modifiedDate}" />
 	<meta name="DC.Description" xml:lang="en"
-		content="{abstract}" />
+		content="" />
 	<meta name="DC.Format" scheme="IMT" content="application/pdf" />
 	<meta name="DC.Identifier" content="{articleId}" />
 	<meta name="DC.Identifier.DOI" content="{journalDoiId}/{journalPath}.v{journalVolume}i{journalIssue}.{articleId}" />
@@ -29,7 +29,7 @@
 	<meta name="DC.Source.Issue" content="{journalIssue}" />
 	<meta name="DC.Source.Volume" content="{journalVolume}" />
 	<meta name="DC.Source.URI" content="{journalBaseUrl}/index.php/{journalPath}" />
-	<meta name="DC.Subject" xml:lang="en" content="{keywords}" />
+	{dcSubjectTags}
 	<meta name="DC.Title" content="{articleTitle}" />
 	<meta name="DC.Type" content="Text.Serial.Journal" />
 	<meta name="DC.Type.articleType" content="Articles" />
@@ -47,7 +47,7 @@
 	<meta name="citation_doi" content="{journalDoiId}/{journalPath}.v{journalVolume}i{journalIssue}.{articleId}" />
 	<meta name="citation_abstract_html_url"
 		content="{journalBaseUrl}/index.php/{journalPath}/article/view/{articleId}" />
-	<meta name="citation_keywords" xml:lang="en" content="{keywords}" />
+	{citationKeywordsTags}
 	<meta name="citation_pdf_url" content="{journalBaseUrl}/index.php/{journalPath}/article/download/{articleId}/{pdfGalleyId}" />
 	<link rel="stylesheet"
 		href="{journalBaseUrl}/plugins/themes/healthSciences/libs/bootstrap.min.css?v=3.3.0.14"
@@ -442,8 +442,6 @@
 							<div>
 								{articleBody}
 								{authorBio}
-								{articleBibliography}
-								{articleFootnotes}
 							</div>
 
 							<div class="article-details-block article-details-doi small-screen">

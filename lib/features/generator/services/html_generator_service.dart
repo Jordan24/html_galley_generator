@@ -90,12 +90,11 @@ class HtmlGeneratorService {
       '{publishYear}': metadata.publishYear.trim(),
       '{year}': metadata.publishYear.trim(),
       
-      '{abstract}': _clean(metadata.abstract_),
       '{keywords}': _clean(metadata.keywords),
-      '{articleBody}': metadata.articleBodyHtml,
+      '{dcSubjectTags}': _generateKeywordTags(metadata.keywords, 'DC.Subject'),
+      '{citationKeywordsTags}': _generateKeywordTags(metadata.keywords, 'citation_keywords'),
+      '{articleBody}': metadata.articleBody,
       '{authorBio}': _processAuthorBio(metadata),
-      '{articleBibliography}': metadata.articleBibliography,
-      '{articleFootnotes}': metadata.articleFootnotes,
     };
 
     String result = text;
@@ -126,6 +125,12 @@ class HtmlGeneratorService {
       return '<p>$bio</p>';
     }
     return bio;
+  }
+
+  String _generateKeywordTags(String keywords, String tagName) {
+    if (keywords.isEmpty) return '';
+    final list = keywords.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty);
+    return list.map((k) => '<meta name="$tagName" xml:lang="en" content="${_clean(k)}" />').join('\n\t');
   }
 
   String _clean(String text) {
