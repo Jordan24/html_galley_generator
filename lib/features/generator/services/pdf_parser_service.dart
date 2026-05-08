@@ -46,7 +46,35 @@ class PdfParserService {
 
       if (text.isEmpty) continue;
 
-      // 1. Footer and Header Detection
+      // 1. Metadata Extraction (regardless of position)
+      
+      // Volume/Issue
+      if (text.contains('Volume') && text.contains('Issue')) {
+        final volMatch = RegExp(r'Volume\s+(\d+)').firstMatch(text);
+        final issMatch = RegExp(r'Issue\s+(\d+)').firstMatch(text);
+        if (volMatch != null) volume = volMatch.group(1)!;
+        if (issMatch != null) issue = issMatch.group(1)!;
+      }
+
+      // Article ID from DOI (often in footer)
+      if (text.contains('doi.org')) {
+        // Extract the DOI URL part (handle optional protocol)
+        final doiMatch = RegExp(r'(?:https?://)?doi\.org/[^\s]+').firstMatch(text);
+        if (doiMatch != null) {
+          String doiUrl = doiMatch.group(0)!;
+          // Trim trailing punctuation that might be part of a sentence
+          doiUrl = doiUrl.replaceAll(RegExp(r'[./,;]+$'), '');
+          final parts = doiUrl.split('.');
+          if (parts.isNotEmpty) {
+            final lastPart = parts.last;
+            if (RegExp(r'^\d+$').hasMatch(lastPart)) {
+              articleId = lastPart;
+            }
+          }
+        }
+      }
+
+      // 2. Footer and Header Detection
       final pageIndex = line.pageIndex;
       final pageHeight = document.pages[pageIndex].size.height;
       final isBottom = line.bounds.top > pageHeight * 0.92;
@@ -56,20 +84,10 @@ class PdfParserService {
       final isJournalFooter = text.contains('Transnational Asia') || (text.contains('Volume') && text.contains('Issue'));
 
       if (isBottom || isPageNumber || isJournalFooter) {
-        // Still capture metadata from footers if needed
-        if (isJournalFooter) {
-          final volMatch = RegExp(r'Volume\s+(\d+)').firstMatch(text);
-          final issMatch = RegExp(r'Issue\s+(\d+)').firstMatch(text);
-          if (volMatch != null) volume = volMatch.group(1)!;
-          if (issMatch != null) issue = issMatch.group(1)!;
-        }
-        // Skip these lines for body/abstract content
-        // Always skip page numbers and bottom footers
-        // Skip journal headers on all pages except maybe the first (but even then they are metadata)
-        if (isBottom || isPageNumber || isJournalFooter) continue;
+        continue;
       }
 
-      // 2. Title Detection (if not in metadata or needs refinement)
+      // 3. Title Detection
       // Heuristic: Large font (>13pt), near the top (first 20 lines)
       if (fontSize > 13.5 && i < 20) {
         titleLines.add(text);
@@ -85,7 +103,7 @@ class PdfParserService {
         titleLines = []; // Reset to avoid re-triggering
       }
 
-      // 3. Author Detection
+      // 4. Author Detection
       // Heuristic: Medium font (11-13pt), after title, near start
       if (authorFullName.isEmpty && title.isNotEmpty && fontSize >= 11.0 && fontSize <= 13.0 && i < 30) {
         if (!text.toLowerCase().contains('volume') && !text.toLowerCase().contains('issue') && !text.toLowerCase().contains('abstract')) {
@@ -93,21 +111,7 @@ class PdfParserService {
         }
       }
 
-      // 4. Volume/Issue from Text/Headers
-      if (text.contains('Volume') && text.contains('Issue')) {
-        final volMatch = RegExp(r'Volume\s+(\d+)').firstMatch(text);
-        final issMatch = RegExp(r'Issue\s+(\d+)').firstMatch(text);
-        if (volMatch != null) volume = volMatch.group(1)!;
-        if (issMatch != null) issue = issMatch.group(1)!;
-      }
-
-      // 5. Article ID from DOI
-      if (text.contains('doi.org')) {
-        final idMatch = RegExp(r'\.v\d+i\d+\.(\d+)').firstMatch(text);
-        if (idMatch != null) articleId = idMatch.group(1)!;
-      }
-
-      // 6. Section Detection
+      // 5. Section Detection
       final lowerText = text.toLowerCase();
       if (lowerText == 'abstract') {
         isAbstract = true;
@@ -133,7 +137,7 @@ class PdfParserService {
         continue;
       }
 
-      // 7. Section Content
+      // 6. Section Content
       if (isAbstract) {
         abstractText += ' $text';
       } else if (isKeywords) {
@@ -204,6 +208,31 @@ class PdfParserService {
     }
     if (match != null) {
       authorOrcid = match.group(1)!.replaceAll(RegExp(r'[\s\.]'), '-');
+    }
+
+    // 10. DOI/Article ID Extraction from Annotations if not found in text
+    if (articleId.isEmpty) {
+      for (int i = 0; i < document.pages.count; i++) {
+        final page = document.pages[i];
+        for (int j = 0; j < page.annotations.count; j++) {
+          final annotation = page.annotations[j];
+          if (annotation is PdfUriAnnotation) {
+            final uri = annotation.uri;
+            if (uri.contains('doi.org')) {
+              String doiUrl = uri.replaceAll(RegExp(r'[./,;]+$'), '');
+              final parts = doiUrl.split('.');
+              if (parts.isNotEmpty) {
+                final lastPart = parts.last;
+                if (RegExp(r'^\d+$').hasMatch(lastPart)) {
+                  articleId = lastPart;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        if (articleId.isNotEmpty) break;
+      }
     }
 
     document.dispose();
