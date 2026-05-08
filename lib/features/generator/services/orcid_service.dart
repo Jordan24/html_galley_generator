@@ -2,15 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class OrcidService {
-  static const String _searchUrl = 'https://pub.orcid.org/v3.0/search';
-
   /// Searches for an ORCID ID by author name and optional affiliation.
   /// Returns the first ORCID ID found, or null.
   Future<String?> findOrcid(String fullName, {String? affiliation}) async {
     final name = fullName.trim();
-    print('Searching ORCID for: $name');
     var aff = affiliation?.trim();
-    print('Affiliation: $aff');
 
     if (name.isEmpty) return null;
 
@@ -51,7 +47,7 @@ class OrcidService {
         }
       }
     } catch (e) {
-      print('Error searching ORCID: $e');
+      // Error searching ORCID
     }
 
     // Fallback 1: search by name only if affiliation search was used and returned nothing

@@ -4,12 +4,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/orcid_service.dart';
 import 'labeled_text_field.dart';
 
-/// Card displaying the article metadata form fields.
 class MetadataForm extends StatefulWidget {
   const MetadataForm({
     super.key,
     required this.titleCtrl,
     required this.authorFullNameCtrl,
+    required this.authorFirstNameCtrl,
+    required this.authorLastNameCtrl,
     required this.authorOrcidCtrl,
     required this.authorAffiliationCtrl,
     required this.authorBioQuill,
@@ -21,12 +22,24 @@ class MetadataForm extends StatefulWidget {
     required this.issueViewIdCtrl,
     required this.pdfGalleyIdCtrl,
     required this.publishedDateCtrl,
+    required this.issuedDateCtrl,
+    required this.publishedDateMonYYYYCtrl,
+    required this.publishYearCtrl,
     required this.submittedDateCtrl,
     required this.modifiedDateCtrl,
+    required this.articleBibliographyCtrl,
+    required this.articleFootnotesCtrl,
+    required this.titleMainCtrl,
+    required this.issueIdCtrl,
+    required this.abstractCtrl,
+    required this.keywordsCtrl,
+    required this.articleBodyHtmlCtrl,
   });
 
   final TextEditingController titleCtrl;
   final TextEditingController authorFullNameCtrl;
+  final TextEditingController authorFirstNameCtrl;
+  final TextEditingController authorLastNameCtrl;
   final TextEditingController authorOrcidCtrl;
   final TextEditingController authorAffiliationCtrl;
   final QuillController authorBioQuill;
@@ -38,8 +51,18 @@ class MetadataForm extends StatefulWidget {
   final TextEditingController issueViewIdCtrl;
   final TextEditingController pdfGalleyIdCtrl;
   final TextEditingController publishedDateCtrl;
+  final TextEditingController issuedDateCtrl;
+  final TextEditingController publishedDateMonYYYYCtrl;
+  final TextEditingController publishYearCtrl;
   final TextEditingController submittedDateCtrl;
   final TextEditingController modifiedDateCtrl;
+  final TextEditingController articleBibliographyCtrl;
+  final TextEditingController articleFootnotesCtrl;
+  final TextEditingController titleMainCtrl;
+  final TextEditingController issueIdCtrl;
+  final TextEditingController abstractCtrl;
+  final TextEditingController keywordsCtrl;
+  final TextEditingController articleBodyHtmlCtrl;
 
   @override
   State<MetadataForm> createState() => _MetadataFormState();
@@ -105,6 +128,8 @@ class _MetadataFormState extends State<MetadataForm> {
         affiliation: cleanAff,
       );
 
+      if (!mounted) return;
+
       if (result != null) {
         widget.authorOrcidCtrl.text = result;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -168,12 +193,30 @@ class _MetadataFormState extends State<MetadataForm> {
             Row(
               children: [
                 Expanded(
+                  flex: 2,
                   child: LabeledTextField(
                     label: 'Author Full Name',
                     controller: widget.authorFullNameCtrl,
                   ),
                 ),
                 const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'First Name',
+                    controller: widget.authorFirstNameCtrl,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Last Name',
+                    controller: widget.authorLastNameCtrl,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
                 Expanded(
                   child: LabeledTextField(
                     label: 'Author ORCID',
@@ -231,11 +274,15 @@ class _MetadataFormState extends State<MetadataForm> {
                           ),
                   ),
                 ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: LabeledTextField(
+                    label: 'Author Affiliation',
+                    controller: widget.authorAffiliationCtrl,
+                  ),
+                ),
               ],
-            ),
-            LabeledTextField(
-              label: 'Author Affiliation',
-              controller: widget.authorAffiliationCtrl,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -289,7 +336,7 @@ class _MetadataFormState extends State<MetadataForm> {
                     color: Color(0xFFCBD5E1),
                   ),
                   Container(
-                    height: 150,
+                    height: 100,
                     padding: const EdgeInsets.all(12),
                     child: QuillEditor.basic(
                       controller: widget.authorBioQuill,
@@ -324,6 +371,13 @@ class _MetadataFormState extends State<MetadataForm> {
                   child: LabeledTextField(
                     label: 'Article ID',
                     controller: widget.articleIdCtrl,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Issue ID',
+                    controller: widget.issueIdCtrl,
                   ),
                 ),
               ],
@@ -363,25 +417,85 @@ class _MetadataFormState extends State<MetadataForm> {
               children: [
                 Expanded(
                   child: LabeledTextField(
-                    label: 'Published Date (YYYY-MM-DD)',
+                    label: 'Published (ISO)',
                     controller: widget.publishedDateCtrl,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: LabeledTextField(
-                    label: 'Submitted Date (YYYY-MM-DD)',
+                    label: 'Issued (ISO)',
+                    controller: widget.issuedDateCtrl,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Date (Mon YYYY)',
+                    controller: widget.publishedDateMonYYYYCtrl,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Year',
+                    controller: widget.publishYearCtrl,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Submitted Date',
                     controller: widget.submittedDateCtrl,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: LabeledTextField(
-                    label: 'Modified Date (YYYY-MM-DD)',
+                    label: 'Modified Date',
                     controller: widget.modifiedDateCtrl,
                   ),
                 ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Title Main',
+                    controller: widget.titleMainCtrl,
+                  ),
+                ),
               ],
+            ),
+            const SizedBox(height: 16),
+            LabeledTextField(
+              label: 'Article Bibliography (HTML)',
+              controller: widget.articleBibliographyCtrl,
+              maxLines: 5,
+            ),
+            const SizedBox(height: 16),
+            LabeledTextField(
+              label: 'Article Footnotes (HTML)',
+              controller: widget.articleFootnotesCtrl,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 16),
+            LabeledTextField(
+              label: 'Abstract',
+              controller: widget.abstractCtrl,
+              maxLines: 5,
+            ),
+            const SizedBox(height: 16),
+            LabeledTextField(
+              label: 'Keywords',
+              controller: widget.keywordsCtrl,
+            ),
+            const SizedBox(height: 16),
+            LabeledTextField(
+              label: 'Article Body (HTML)',
+              controller: widget.articleBodyHtmlCtrl,
+              maxLines: 15,
             ),
           ],
         ),

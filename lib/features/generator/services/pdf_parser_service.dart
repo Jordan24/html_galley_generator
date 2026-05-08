@@ -25,11 +25,11 @@ class PdfParserService {
 
     // 1. Fallback to PDF Metadata
     final info = document.documentInformation;
-    if (info.title != null && info.title!.isNotEmpty) {
-      title = _clean(info.title!);
+    if (info.title.isNotEmpty) {
+      title = _clean(info.title);
     }
-    if (info.author != null && info.author!.isNotEmpty) {
-      authorFullName = _clean(info.author!);
+    if (info.author.isNotEmpty) {
+      authorFullName = _clean(info.author);
     }
 
     bool isAbstract = false;
@@ -44,15 +44,38 @@ class PdfParserService {
 
       if (text.isEmpty) continue;
 
+      // 1. Footer and Header Detection
+      final pageIndex = line.pageIndex;
+      final pageHeight = document.pages[pageIndex].size.height;
+      final isBottom = line.bounds.top > pageHeight * 0.92;
+
+      // Skip lines that are purely page numbers or common footer text
+      final isPageNumber = RegExp(r'^\d+$').hasMatch(text);
+      final isJournalFooter = text.contains('Transnational Asia') || (text.contains('Volume') && text.contains('Issue'));
+
+      if (isBottom || isPageNumber || isJournalFooter) {
+        // Still capture metadata from footers if needed
+        if (isJournalFooter) {
+          final volMatch = RegExp(r'Volume\s+(\d+)').firstMatch(text);
+          final issMatch = RegExp(r'Issue\s+(\d+)').firstMatch(text);
+          if (volMatch != null) volume = volMatch.group(1)!;
+          if (issMatch != null) issue = issMatch.group(1)!;
+        }
+        // Skip these lines for body/abstract content
+        // Always skip page numbers and bottom footers
+        // Skip journal headers on all pages except maybe the first (but even then they are metadata)
+        if (isBottom || isPageNumber || isJournalFooter) continue;
+      }
+
       // 2. Title Detection (if not in metadata or needs refinement)
       // Heuristic: Large font (>13pt), near the top (first 20 lines)
-      if (fontSize > 13.0 && i < 20) {
+      if (fontSize > 13.5 && i < 20) {
         titleLines.add(text);
         continue;
       }
 
       // If we found title lines and font size dropped, use them as priority over metadata
-      if (titleLines.isNotEmpty && fontSize <= 13.0) {
+      if (titleLines.isNotEmpty && fontSize <= 13.5) {
         final extractedTitle = titleLines.join(' ');
         if (extractedTitle.length > title.length) {
           title = extractedTitle;
@@ -62,8 +85,8 @@ class PdfParserService {
 
       // 3. Author Detection
       // Heuristic: Medium font (11-13pt), after title, near start
-      if (authorFullName.isEmpty && title.isNotEmpty && fontSize >= 11.0 && fontSize <= 13.5 && i < 30) {
-        if (!text.toLowerCase().contains('volume') && !text.toLowerCase().contains('issue')) {
+      if (authorFullName.isEmpty && title.isNotEmpty && fontSize >= 11.0 && fontSize <= 13.0 && i < 30) {
+        if (!text.toLowerCase().contains('volume') && !text.toLowerCase().contains('issue') && !text.toLowerCase().contains('abstract')) {
           authorFullName = text;
         }
       }
@@ -108,9 +131,9 @@ class PdfParserService {
         keywords += text;
       } else if (isReferences) {
         referenceLines.add(text);
-      } else if (title.isNotEmpty && authorFullName.isNotEmpty && fontSize >= 9.0 && fontSize <= 11.0) {
-        // Body content
-        if (text.length > 5 && !text.contains('Transnational Asia')) {
+      } else if (title.isNotEmpty && authorFullName.isNotEmpty && fontSize >= 8.5 && fontSize <= 13.5) {
+        // Body content - include headers (larger font)
+        if (text.length > 3) {
           bodyLines.add(text);
         }
       }
@@ -149,20 +172,9 @@ class PdfParserService {
     }
 
     // 9. ORCID Extraction
-    // Search for patterns like:
-    // - orcid.org/0000-0002-2168-3352
-    // - 0000-0002-2168-3352 (with -, space, or . as separators)
     final orcidPattern = RegExp(r'(\d{4}[-\s\.]\d{4}[-\s\.]\d{4}[-\s\.]\d{3}[0-9X])');
-    
-    // Check full text
     var match = orcidPattern.firstMatch(fullText);
-    
-    // Check keywords if not found in text
-    if (match == null && info.keywords != null) {
-      match = orcidPattern.firstMatch(info.keywords!);
-    }
-
-    // Check link annotations if still not found
+    match ??= orcidPattern.firstMatch(info.keywords);
     if (match == null) {
       for (int i = 0; i < document.pages.count; i++) {
         final page = document.pages[i];
@@ -179,8 +191,6 @@ class PdfParserService {
         if (match != null) break;
       }
     }
-    
-    // Normalize to 0000-0000-0000-0000 format
     if (match != null) {
       authorOrcid = match.group(1)!.replaceAll(RegExp(r'[\s\.]'), '-');
     }
@@ -195,9 +205,13 @@ class PdfParserService {
       title: title,
       author: authorFullName.split(' ').last.toUpperCase(),
       authorFullName: authorFullName,
+      authorFirstName: authorFullName.isNotEmpty ? authorFullName.split(' ').first : '',
+      authorLastName: authorFullName.isNotEmpty ? authorFullName.split(' ').last : '',
       abstract_: abstractText,
       keywords: keywords,
-      articleBodyHtml: _processBodyLines(bodyLines) + _processReferenceLines(referenceLines),
+      articleBodyHtml: _processBodyLines(bodyLines),
+      articleBibliography: _processReferenceLines(referenceLines),
+      articleFootnotes: '', // Footnotes are harder to extract reliably without more advanced logic
       authorOrcid: authorOrcid,
       authorAffiliation: authorAffiliation,
       authorBio: authorBio,
@@ -209,28 +223,31 @@ class PdfParserService {
       issueViewId: '',   
       pdfGalleyId: '',   
       publishedDate: DateTime.now().toString().split(' ').first,
+      issuedDate: DateTime.now().toString().split(' ').first,
+      publishedDateMonYYYY: _formatMonYYYY(DateTime.now()),
+      publishYear: DateTime.now().year.toString(),
       submittedDate: DateTime.now().toString().split(' ').first,
       modifiedDate: DateTime.now().toString().split(' ').first,
+      titleMain: 'Transnational Asia', // Default or extracted
+      issueId: '', 
     );
+  }
+
+  String _formatMonYYYY(DateTime date) {
+    final months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
+    return '${months[date.month - 1]} ${date.year}';
   }
 
   String _clean(String text) {
     if (text.isEmpty) return '';
     return text.trim()
-      // Unicode replacement character (often shows as bars/question marks)
       .replaceAll('\uFFFD', "'")
-      // Single quotes, smart quotes, backticks, and common mis-encodings (CP1252)
       .replaceAll(RegExp(r'[\u2018\u2019\u201A\u201B\u2032\u2035\u02BC\u02BD\u02C8\u02CA\u02CB\u00B4\u0060\u0090\u0091\u0092]'), "'")
-      // Double quotes
       .replaceAll(RegExp(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u0093\u0094\u00AB\u00BB]'), '"')
-      // Dashes and hyphens
       .replaceAll(RegExp(r'[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]'), '-')
-      // Ligatures
       .replaceAll('\uFB01', 'fi')
       .replaceAll('\uFB02', 'fl')
-      // Spaces and invisible characters
       .replaceAll(RegExp(r'[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]'), ' ')
-      // Control characters (except newlines)
       .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
       .replaceAll(RegExp(r'\s+'), ' ');
   }
@@ -243,17 +260,35 @@ class PdfParserService {
       final text = lines[i].trim();
       if (text.isEmpty) continue;
 
-      if (!inParagraph) {
-        buffer.write('<p>');
-        inParagraph = true;
-      }
+      // Header heuristic:
+      // 1. Short line (< 100 chars)
+      // 2. Doesn't end with a period, comma, or semicolon
+      // 3. Or it's one of the standard section titles
+      final isHeader = (text.length < 100 && !RegExp(r'[.,;]$').hasMatch(text)) || 
+                       RegExp(r'^(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References)$', caseSensitive: false).hasMatch(text);
 
-      buffer.write('$text ');
+      if (isHeader) {
+        if (inParagraph) {
+          buffer.writeln('</p>');
+          inParagraph = false;
+        }
+        buffer.writeln('<h2>$text</h2>');
+      } else {
+        if (!inParagraph) {
+          buffer.write('<p>');
+          inParagraph = true;
+        }
+        buffer.write('$text ');
 
-      // End of paragraph heuristic: ends with period and next line starts with capital letter or is far away
-      if (text.endsWith('.')) {
-        buffer.writeln('</p>');
-        inParagraph = false;
+        // End of paragraph heuristic: ends with period and next line is likely a header or long gap
+        if (text.endsWith('.') && i < lines.length - 1) {
+          final nextLine = lines[i+1].trim();
+          final nextIsHeader = (nextLine.length < 100 && !RegExp(r'[.,;]$').hasMatch(nextLine));
+          if (nextIsHeader) {
+            buffer.writeln('</p>');
+            inParagraph = false;
+          }
+        }
       }
     }
 
@@ -262,7 +297,9 @@ class PdfParserService {
   }
 
   String _processReferenceLines(List<String> lines) {
+    if (lines.isEmpty) return '';
     final buffer = StringBuffer();
+    buffer.writeln('<h2>Bibliography</h2>');
     for (final line in lines) {
       if (line.trim().isEmpty) continue;
       buffer.writeln('<div class="csl-entry">${line.trim()}</div>');

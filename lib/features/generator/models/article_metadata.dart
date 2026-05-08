@@ -1,8 +1,9 @@
-/// Holds the metadata fields extracted from a PDF and displayed in the form.
 class ArticleMetadata {
   final String title;
   final String author; // Last name, uppercase (e.g. COLLINS)
   final String authorFullName; // Full name (e.g. Lauren Collins)
+  final String authorFirstName;
+  final String authorLastName;
   final String authorOrcid; // e.g. 0000-0002-2168-3352
   final String authorAffiliation; // e.g. University of Colorado Boulder
   final String authorBio; // Full bio paragraph HTML
@@ -14,16 +15,25 @@ class ArticleMetadata {
   final String issueViewId; // OJS issue view ID (e.g. 15)
   final String pdfGalleyId; // OJS galley/file ID for the PDF download (e.g. 191)
   final String publishedDate; // ISO8601 e.g. 2025-10-31
+  final String issuedDate; // ISO8601 e.g. 2025-10-31
+  final String publishedDateMonYYYY; // e.g. Oct. 2025
+  final String publishYear; // e.g. 2025
   final String submittedDate; // ISO8601 e.g. 2024-12-28
   final String modifiedDate; // ISO8601 e.g. 2025-11-10
   final String abstract_; // Full abstract text (plain text or HTML)
   final String keywords; // Comma-separated keywords
   final String articleBodyHtml; // Full article body HTML content
+  final String articleBibliography; // HTML or plain text bibliography
+  final String articleFootnotes; // HTML or plain text footnotes
+  final String titleMain; // Typically same as journalName or similar
+  final String issueId; // e.g. 15
 
   const ArticleMetadata({
     this.title = '',
     this.author = '',
     this.authorFullName = '',
+    this.authorFirstName = '',
+    this.authorLastName = '',
     this.authorOrcid = '',
     this.authorAffiliation = '',
     this.authorBio = '',
@@ -35,17 +45,26 @@ class ArticleMetadata {
     this.issueViewId = '',
     this.pdfGalleyId = '',
     this.publishedDate = '',
+    this.issuedDate = '',
+    this.publishedDateMonYYYY = '',
+    this.publishYear = '',
     this.submittedDate = '',
     this.modifiedDate = '',
     this.abstract_ = '',
     this.keywords = '',
     this.articleBodyHtml = '',
+    this.articleBibliography = '',
+    this.articleFootnotes = '',
+    this.titleMain = '',
+    this.issueId = '',
   });
 
   ArticleMetadata copyWith({
     String? title,
     String? author,
     String? authorFullName,
+    String? authorFirstName,
+    String? authorLastName,
     String? authorOrcid,
     String? authorAffiliation,
     String? authorBio,
@@ -57,16 +76,25 @@ class ArticleMetadata {
     String? issueViewId,
     String? pdfGalleyId,
     String? publishedDate,
+    String? issuedDate,
+    String? publishedDateMonYYYY,
+    String? publishYear,
     String? submittedDate,
     String? modifiedDate,
     String? abstract_,
     String? keywords,
     String? articleBodyHtml,
+    String? articleBibliography,
+    String? articleFootnotes,
+    String? titleMain,
+    String? issueId,
   }) {
     return ArticleMetadata(
       title: title ?? this.title,
       author: author ?? this.author,
       authorFullName: authorFullName ?? this.authorFullName,
+      authorFirstName: authorFirstName ?? this.authorFirstName,
+      authorLastName: authorLastName ?? this.authorLastName,
       authorOrcid: authorOrcid ?? this.authorOrcid,
       authorAffiliation: authorAffiliation ?? this.authorAffiliation,
       authorBio: authorBio ?? this.authorBio,
@@ -78,11 +106,18 @@ class ArticleMetadata {
       issueViewId: issueViewId ?? this.issueViewId,
       pdfGalleyId: pdfGalleyId ?? this.pdfGalleyId,
       publishedDate: publishedDate ?? this.publishedDate,
+      issuedDate: issuedDate ?? this.issuedDate,
+      publishedDateMonYYYY: publishedDateMonYYYY ?? this.publishedDateMonYYYY,
+      publishYear: publishYear ?? this.publishYear,
       submittedDate: submittedDate ?? this.submittedDate,
       modifiedDate: modifiedDate ?? this.modifiedDate,
       abstract_: abstract_ ?? this.abstract_,
       keywords: keywords ?? this.keywords,
       articleBodyHtml: articleBodyHtml ?? this.articleBodyHtml,
+      articleBibliography: articleBibliography ?? this.articleBibliography,
+      articleFootnotes: articleFootnotes ?? this.articleFootnotes,
+      titleMain: titleMain ?? this.titleMain,
+      issueId: issueId ?? this.issueId,
     );
   }
 }

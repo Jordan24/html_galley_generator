@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import 'labeled_text_field.dart';
 
-/// Card displaying the journal-level settings fields.
 class SettingsForm extends StatelessWidget {
   const SettingsForm({
     super.key,
-    required this.baseUrlCtrl,
+    required this.journalBaseUrlCtrl,
     required this.journalPathCtrl,
+    required this.journalNameCtrl,
+    required this.journalAbbrevCtrl,
+    required this.journalIssnCtrl,
+    required this.journalDoiIdCtrl,
+    required this.journalOrganizationUrlCtrl,
+    required this.supportingOrganizationCtrl,
   });
 
-  final TextEditingController baseUrlCtrl;
+  final TextEditingController journalBaseUrlCtrl;
   final TextEditingController journalPathCtrl;
+  final TextEditingController journalNameCtrl;
+  final TextEditingController journalAbbrevCtrl;
+  final TextEditingController journalIssnCtrl;
+  final TextEditingController journalDoiIdCtrl;
+  final TextEditingController journalOrganizationUrlCtrl;
+  final TextEditingController supportingOrganizationCtrl;
 
   @override
   Widget build(BuildContext context) {
@@ -33,11 +44,54 @@ class SettingsForm extends StatelessWidget {
             const SizedBox(height: 24),
             LabeledTextField(
               label: 'Journal Base URL',
-              controller: baseUrlCtrl,
+              controller: journalBaseUrlCtrl,
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Journal Path',
+                    controller: journalPathCtrl,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Abbreviation',
+                    controller: journalAbbrevCtrl,
+                  ),
+                ),
+              ],
             ),
             LabeledTextField(
-              label: 'Journal Path (e.g., ta)',
-              controller: journalPathCtrl,
+              label: 'Journal Name',
+              controller: journalNameCtrl,
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'ISSN',
+                    controller: journalIssnCtrl,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'DOI Prefix',
+                    controller: journalDoiIdCtrl,
+                  ),
+                ),
+              ],
+            ),
+            LabeledTextField(
+              label: 'Organization URL',
+              controller: journalOrganizationUrlCtrl,
+            ),
+            LabeledTextField(
+              label: 'Supporting Organization',
+              controller: supportingOrganizationCtrl,
+              maxLines: 2,
             ),
           ],
         ),
