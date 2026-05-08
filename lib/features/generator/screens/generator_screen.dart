@@ -9,8 +9,9 @@ import '../models/article_metadata.dart';
 import '../models/journal_settings.dart';
 import '../services/html_generator_service.dart';
 import '../services/pdf_parser_service.dart';
+import '../widgets/article_metadata_form.dart';
+import '../widgets/author_metadata_form.dart';
 import '../widgets/drop_zone.dart';
-import '../widgets/metadata_form.dart';
 import '../widgets/output_preview_bar.dart';
 import '../widgets/settings_form.dart';
 
@@ -24,12 +25,11 @@ class GeneratorScreen extends StatefulWidget {
 }
 
 class _GeneratorScreenState extends State<GeneratorScreen> {
-  // ── Dependencies ────────────────────────────────────────────────────────────
+  // ... (dependencies and state remain the same) ...
   final _settingsRepo = SettingsRepository();
   final _pdfParser = PdfParserService();
   final _htmlGenerator = HtmlGeneratorService();
 
-  // ── State ───────────────────────────────────────────────────────────────────
   File? _selectedPdf;
 
   // Metadata controllers
@@ -71,7 +71,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   final _journalOrganizationUrlCtrl = TextEditingController();
   final _supportingOrganizationCtrl = TextEditingController();
 
-  // ── Lifecycle ────────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -117,14 +116,12 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     super.dispose();
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
   void _rebuild() => setState(() {});
 
   ArticleMetadata get _currentMetadata {
     final fullName = _authorFullNameCtrl.text;
     final lastName = fullName.isNotEmpty ? fullName.split(' ').last.toUpperCase() : '';
     
-    // Convert Quill Delta to HTML for metadata
     final delta = _authorBioQuill.document.toDelta();
     final converter = QuillDeltaToHtmlConverter(delta.toJson());
     final bioHtml = converter.convert();
@@ -172,7 +169,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     supportingOrganization: _supportingOrganizationCtrl.text,
   );
 
-  // ── Settings persistence ──────────────────────────────────────────────────────
   Future<void> _loadSettings() async {
     final settings = await _settingsRepo.load();
     setState(() {
@@ -187,7 +183,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     });
   }
 
-  // ── PDF processing ────────────────────────────────────────────────────────────
   Future<void> _processFile(File file) async {
     setState(() => _selectedPdf = file);
     try {
@@ -200,7 +195,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _authorOrcidCtrl.text = metadata.authorOrcid;
         _authorAffiliationCtrl.text = metadata.authorAffiliation;
         
-        // Reset and populate Quill editor
         _authorBioQuill.document = Document()..insert(0, metadata.authorBio);
         
         _volumeCtrl.text = metadata.volume;
@@ -230,7 +224,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     }
   }
 
-  // ── HTML generation ───────────────────────────────────────────────────────────
   Future<void> _generateHtml() async {
     final metadata = _currentMetadata;
     final settings = _currentSettings;
@@ -258,7 +251,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final metadata = _currentMetadata;
@@ -274,75 +266,122 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         backgroundColor: Colors.white,
         scrolledUnderElevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropZone(
-              selectedPdf: _selectedPdf,
-              onFilePicked: _processFile,
-            ),
-            const SizedBox(height: 32),
-            Row(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 1400;
+          final isMedium = constraints.maxWidth >= 900 && constraints.maxWidth < 1400;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  flex: 3,
-                  child: MetadataForm(
-                    titleCtrl: _titleCtrl,
-                    authorFullNameCtrl: _authorFullNameCtrl,
-                    authorFirstNameCtrl: _authorFirstNameCtrl,
-                    authorLastNameCtrl: _authorLastNameCtrl,
-                    authorOrcidCtrl: _authorOrcidCtrl,
-                    authorAffiliationCtrl: _authorAffiliationCtrl,
-                    authorBioQuill: _authorBioQuill,
-                    volumeCtrl: _volumeCtrl,
-                    issueCtrl: _issueCtrl,
-                    articleIdCtrl: _articleIdCtrl,
-                    submissionIdCtrl: _submissionIdCtrl,
-                    publicationIdCtrl: _publicationIdCtrl,
-                    issueViewIdCtrl: _issueViewIdCtrl,
-                    pdfGalleyIdCtrl: _pdfGalleyIdCtrl,
-                    publishedDateCtrl: _publishedDateCtrl,
-                    issuedDateCtrl: _issuedDateCtrl,
-                    publishedDateMonYYYYCtrl: _publishedDateMonYYYYCtrl,
-                    publishYearCtrl: _publishYearCtrl,
-                    submittedDateCtrl: _submittedDateCtrl,
-                    modifiedDateCtrl: _modifiedDateCtrl,
-                    articleBibliographyCtrl: _articleBibliographyCtrl,
-                    articleFootnotesCtrl: _articleFootnotesCtrl,
-                    titleMainCtrl: _titleMainCtrl,
-                    issueIdCtrl: _issueIdCtrl,
-                    abstractCtrl: _abstractCtrl,
-                    keywordsCtrl: _keywordsCtrl,
-                    articleBodyHtmlCtrl: _articleBodyHtmlCtrl,
-                  ),
+                DropZone(
+                  selectedPdf: _selectedPdf,
+                  onFilePicked: _processFile,
                 ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 2,
-                  child: SettingsForm(
-                    journalBaseUrlCtrl: _journalBaseUrlCtrl,
-                    journalPathCtrl: _journalPathCtrl,
-                    journalNameCtrl: _journalNameCtrl,
-                    journalAbbrevCtrl: _journalAbbrevCtrl,
-                    journalIssnCtrl: _journalIssnCtrl,
-                    journalDoiIdCtrl: _journalDoiIdCtrl,
-                    journalOrganizationUrlCtrl: _journalOrganizationUrlCtrl,
-                    supportingOrganizationCtrl: _supportingOrganizationCtrl,
-                  ),
+                const SizedBox(height: 32),
+                _buildFormLayout(isWide, isMedium),
+                const SizedBox(height: 32),
+                OutputPreviewBar(
+                  fileName: fileName,
+                  onGenerate: _generateHtml,
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-            OutputPreviewBar(
-              fileName: fileName,
-              onGenerate: _generateHtml,
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
+  }
+
+  Widget _buildFormLayout(bool isWide, bool isMedium) {
+    final authorForm = AuthorMetadataForm(
+      authorFullNameCtrl: _authorFullNameCtrl,
+      authorFirstNameCtrl: _authorFirstNameCtrl,
+      authorLastNameCtrl: _authorLastNameCtrl,
+      authorOrcidCtrl: _authorOrcidCtrl,
+      authorAffiliationCtrl: _authorAffiliationCtrl,
+      authorBioQuill: _authorBioQuill,
+    );
+
+    final articleForm = ArticleMetadataForm(
+      titleCtrl: _titleCtrl,
+      volumeCtrl: _volumeCtrl,
+      issueCtrl: _issueCtrl,
+      articleIdCtrl: _articleIdCtrl,
+      submissionIdCtrl: _submissionIdCtrl,
+      publicationIdCtrl: _publicationIdCtrl,
+      issueViewIdCtrl: _issueViewIdCtrl,
+      pdfGalleyIdCtrl: _pdfGalleyIdCtrl,
+      publishedDateCtrl: _publishedDateCtrl,
+      issuedDateCtrl: _issuedDateCtrl,
+      publishedDateMonYYYYCtrl: _publishedDateMonYYYYCtrl,
+      publishYearCtrl: _publishYearCtrl,
+      submittedDateCtrl: _submittedDateCtrl,
+      modifiedDateCtrl: _modifiedDateCtrl,
+      articleBibliographyCtrl: _articleBibliographyCtrl,
+      articleFootnotesCtrl: _articleFootnotesCtrl,
+      titleMainCtrl: _titleMainCtrl,
+      issueIdCtrl: _issueIdCtrl,
+      abstractCtrl: _abstractCtrl,
+      keywordsCtrl: _keywordsCtrl,
+      articleBodyHtmlCtrl: _articleBodyHtmlCtrl,
+    );
+
+    final settingsForm = SettingsForm(
+      journalBaseUrlCtrl: _journalBaseUrlCtrl,
+      journalPathCtrl: _journalPathCtrl,
+      journalNameCtrl: _journalNameCtrl,
+      journalAbbrevCtrl: _journalAbbrevCtrl,
+      journalIssnCtrl: _journalIssnCtrl,
+      journalDoiIdCtrl: _journalDoiIdCtrl,
+      journalOrganizationUrlCtrl: _journalOrganizationUrlCtrl,
+      supportingOrganizationCtrl: _supportingOrganizationCtrl,
+    );
+
+    if (isWide) {
+      // 3 Columns: Author | Article | Journal
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 2, child: authorForm),
+          const SizedBox(width: 24),
+          Expanded(flex: 3, child: articleForm),
+          const SizedBox(width: 24),
+          Expanded(flex: 2, child: settingsForm),
+        ],
+      );
+    } else if (isMedium) {
+      // 2 Columns: Article | [Author + Journal]
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 3, child: articleForm),
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 2,
+            child: Column(
+              children: [
+                authorForm,
+                const SizedBox(height: 24),
+                settingsForm,
+              ],
+            ),
+          ),
+        ],
+      );
+    } else {
+      // 1 Column: Author -> Article -> Journal
+      return Column(
+        children: [
+          authorForm,
+          const SizedBox(height: 24),
+          articleForm,
+          const SizedBox(height: 24),
+          settingsForm,
+        ],
+      );
+    }
   }
 }
