@@ -58,6 +58,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   final _titleMainCtrl = TextEditingController();
   final _keywordsCtrl = TextEditingController();
   final _articleBodyCtrl = TextEditingController();
+  String _articleAbstract = '';
 
   // Settings controllers
   final _journalBaseUrlCtrl = TextEditingController();
@@ -246,6 +247,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       keywords: _keywordsCtrl.text,
       articleBody: _articleBodyCtrl.text,
       titleMain: _titleMainCtrl.text,
+      articleAbstract: _articleAbstract,
     );
   }
 
@@ -308,6 +310,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _titleMainCtrl.text = metadata.titleMain;
         _keywordsCtrl.text = metadata.keywords;
         _articleBodyCtrl.text = metadata.articleBody;
+        _articleAbstract = metadata.articleAbstract;
       });
       _showSnackBar('PDF parsed successfully!');
     } catch (e) {

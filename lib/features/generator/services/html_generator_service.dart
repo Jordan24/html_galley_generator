@@ -91,6 +91,7 @@ class HtmlGeneratorService {
       '{year}': metadata.publishYear.trim(),
       
       '{keywords}': _clean(metadata.keywords),
+      '{articleAbstract}': _clean(metadata.articleAbstract),
       '{dcSubjectTags}': _generateKeywordTags(metadata.keywords, 'DC.Subject'),
       '{citationKeywordsTags}': _generateKeywordTags(metadata.keywords, 'citation_keywords'),
       '{articleBody}': metadata.articleBody,
@@ -129,8 +130,8 @@ class HtmlGeneratorService {
 
   String _generateKeywordTags(String keywords, String tagName) {
     if (keywords.isEmpty) return '';
-    final list = keywords.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty);
-    return list.map((k) => '<meta name="$tagName" xml:lang="en" content="${_clean(k)}" />').join('\n\t');
+    final list = keywords.split(RegExp(r'[,;]')).map((e) => e.trim()).where((e) => e.isNotEmpty);
+    return list.map((k) => '<meta name="$tagName" xml:lang="en" content="${_clean(k)}"/>').join('\n\t');
   }
 
   String _clean(String text) {

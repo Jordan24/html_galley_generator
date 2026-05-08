@@ -22,6 +22,7 @@ class ArticleMetadata {
   final String keywords; // Comma-separated keywords
   final String articleBody; // Full article body HTML content (includes abstract, keywords, bib, footnotes)
   final String titleMain; // Typically same as journalName or similar
+  final String articleAbstract; // Plain text abstract for meta tags
 
   const ArticleMetadata({
     this.title = '',
@@ -47,6 +48,7 @@ class ArticleMetadata {
     this.keywords = '',
     this.articleBody = '',
     this.titleMain = '',
+    this.articleAbstract = '',
   });
 
   ArticleMetadata copyWith({
@@ -73,6 +75,7 @@ class ArticleMetadata {
     String? keywords,
     String? articleBody,
     String? titleMain,
+    String? articleAbstract,
   }) {
     return ArticleMetadata(
       title: title ?? this.title,
@@ -98,6 +101,7 @@ class ArticleMetadata {
       keywords: keywords ?? this.keywords,
       articleBody: articleBody ?? this.articleBody,
       titleMain: titleMain ?? this.titleMain,
+      articleAbstract: articleAbstract ?? this.articleAbstract,
     );
   }
 }

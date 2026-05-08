@@ -5,7 +5,8 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>
-		{articleTitle}
+		{titleMain}
+		| {journalName}
 	</title>
 	<link rel="icon" href="{journalBaseUrl}/public/journals/3/favicon_en_US.png">
 	<meta name="generator" content="Open Journal Systems 3.3.0.14">
@@ -15,8 +16,7 @@
 	<meta name="DC.Date.dateSubmitted" scheme="ISO8601" content="{submittedDate}" />
 	<meta name="DC.Date.issued" scheme="ISO8601" content="{issuedDate}" />
 	<meta name="DC.Date.modified" scheme="ISO8601" content="{modifiedDate}" />
-	<meta name="DC.Description" xml:lang="en"
-		content="" />
+	<meta name="DC.Description" xml:lang="en" content="{articleAbstract}" />
 	<meta name="DC.Format" scheme="IMT" content="application/pdf" />
 	<meta name="DC.Identifier" content="{articleId}" />
 	<meta name="DC.Identifier.DOI" content="{journalDoiId}/{journalPath}.v{journalVolume}i{journalIssue}.{articleId}" />
@@ -29,7 +29,7 @@
 	<meta name="DC.Source.Issue" content="{journalIssue}" />
 	<meta name="DC.Source.Volume" content="{journalVolume}" />
 	<meta name="DC.Source.URI" content="{journalBaseUrl}/index.php/{journalPath}" />
-	{dcSubjectTags}
+	<meta name="DC.Subject" xml:lang="en" content="" />
 	<meta name="DC.Title" content="{articleTitle}" />
 	<meta name="DC.Type" content="Text.Serial.Journal" />
 	<meta name="DC.Type.articleType" content="Articles" />
@@ -47,19 +47,16 @@
 	<meta name="citation_doi" content="{journalDoiId}/{journalPath}.v{journalVolume}i{journalIssue}.{articleId}" />
 	<meta name="citation_abstract_html_url"
 		content="{journalBaseUrl}/index.php/{journalPath}/article/view/{articleId}" />
-	{citationKeywordsTags}
-	<meta name="citation_pdf_url" content="{journalBaseUrl}/index.php/{journalPath}/article/download/{articleId}/{pdfGalleyId}" />
-	<link rel="stylesheet"
-		href="{journalBaseUrl}/plugins/themes/healthSciences/libs/bootstrap.min.css?v=3.3.0.14"
+	<meta name="citation_keywords" xml:lang="en" content="" />
+	<meta name="citation_pdf_url"
+		content="{journalBaseUrl}/index.php/{journalPath}/article/download/{articleId}/{pdfGalleyId}" />
+	<link rel="stylesheet" href="{journalBaseUrl}/plugins/themes/healthSciences/libs/bootstrap.min.css?v=3.3.0.14"
 		type="text/css" />
-	<link rel="stylesheet"
-		href="{journalBaseUrl}/index.php/{journalPath}/$$$call$$$/page/page/css?name=stylesheet"
+	<link rel="stylesheet" href="{journalBaseUrl}/index.php/{journalPath}/$$$call$$$/page/page/css?name=stylesheet"
 		type="text/css" />
-	<link rel="stylesheet"
-		href="{journalBaseUrl}/plugins/generic/orcidProfile/css/orcidProfile.css?v=3.3.0.14"
+	<link rel="stylesheet" href="{journalBaseUrl}/plugins/generic/orcidProfile/css/orcidProfile.css?v=3.3.0.14"
 		type="text/css" />
-	<link rel="stylesheet"
-		href="{journalBaseUrl}/public/journals/3/styleSheet.css?d=2023-03-28+06%3A28%3A43"
+	<link rel="stylesheet" href="{journalBaseUrl}/public/journals/3/styleSheet.css?d=2023-03-28+06%3A28%3A43"
 		type="text/css" />
 </head>
 
@@ -97,14 +94,12 @@
 
 			<div class="navbar-logo">
 				<a href="	{journalBaseUrl}/index.php/{journalPath}/index
-"><img src="{journalBaseUrl}/public/journals/3/pageHeaderLogoImage_en_US.png" alt="Journal logo"
-						class="img-fluid"></a>
+"><img src="{journalBaseUrl}/public/journals/3/pageHeaderLogoImage_en_US.png" alt="Journal logo" class="img-fluid"></a>
 			</div>
 
 			<nav class="navbar navbar-expand-lg navbar-light">
 				<a class="navbar-brand" href="	{journalBaseUrl}/index.php/{journalPath}/index
-"><img src="{journalBaseUrl}/public/journals/3/pageHeaderLogoImage_en_US.png" alt="Journal logo"
-						class="img-fluid"></a>
+"><img src="{journalBaseUrl}/public/journals/3/pageHeaderLogoImage_en_US.png" alt="Journal logo" class="img-fluid"></a>
 				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#main-navbar"
 					aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle Navigation">
 					<span class="navbar-toggler-icon"></span>
@@ -184,8 +179,7 @@
 							</a>
 						</li>
 						<li class="nav-item nmi_type_user_login">
-							<a target="_parent" href="{journalBaseUrl}/index.php/{journalPath}/login"
-								class="nav-link">
+							<a target="_parent" href="{journalBaseUrl}/index.php/{journalPath}/login" class="nav-link">
 								Login
 							</a>
 						</li>
@@ -196,8 +190,7 @@
 
 			<ul id="userNav" class="navbar-nav">
 				<li class="nav-item nmi_type_user_register">
-					<a target="_parent" href="{journalBaseUrl}/index.php/{journalPath}/user/register"
-						class="nav-link">
+					<a target="_parent" href="{journalBaseUrl}/index.php/{journalPath}/user/register" class="nav-link">
 						Register
 					</a>
 				</li>
@@ -218,12 +211,16 @@
 			<div class="page-header row">
 				<div class="col-lg article-meta-mobile">
 					<div class="article-details-issue-section small-screen">
-						<a target="_parent" href="{journalBaseUrl}/index.php/{journalPath}/issue/view/{issueViewId}">Vol. {journalVolume}
+						<a target="_parent"
+							href="{journalBaseUrl}/index.php/{journalPath}/issue/view/{issueViewId}">Vol.
+							{journalVolume}
 							No. {journalIssue} ({year})</a>, Articles
 					</div>
 
 					<div class="article-details-issue-identifier large-screen">
-						<a target="_parent" href="{journalBaseUrl}/index.php/{journalPath}/issue/view/{issueViewId}">Vol. {journalVolume}
+						<a target="_parent"
+							href="{journalBaseUrl}/index.php/{journalPath}/issue/view/{issueViewId}">Vol.
+							{journalVolume}
 							No. {journalIssue} ({year})</a>
 					</div>
 
@@ -247,8 +244,8 @@
 						<li><a class="author-string-href" href="#author-1"><span>{authorFullName}</span><sup
 									class="author-symbol author-plus">&plus;</sup><sup
 									class="author-symbol author-minus hide">&minus;</sup></a><a class="orcidImage"
-								href="https://orcid.org/{authorOrcid}"><svg class="orcid_icon"
-									viewBox="0 0 256 256" aria-hidden="true">
+								href="https://orcid.org/{authorOrcid}"><svg class="orcid_icon" viewBox="0 0 256 256"
+									aria-hidden="true">
 									<style type="text/css">
 										.st0 {
 											fill: #A6CE39;
@@ -345,8 +342,11 @@
 							<div id="citationOutput" class="article-details-how-to-cite-citation" role="region"
 								aria-live="polite">
 								<div class="csl-bib-body">
-									<div class="csl-entry">{authorLastName}, {authorFirstName}. “{articleTitle}”. <i>{journalName}</i>, vol. {journalVolume}, no. {journalIssue}, {publishDateMonYYYY},
-										doi:{journalDoiId}/{journalPath}.v{journalVolume}i1.{articleId}.</div>
+									<div class="csl-entry">{authorLastName}, {authorFirstName}. “{articleTitle}”.
+										<i>{journalName}</i>, vol. {journalVolume}, no. {journalIssue},
+										{publishDateMonYYYY},
+										doi:{journalDoiId}/{journalPath}.v{journalVolume}i1.{articleId}.
+									</div>
 								</div>
 							</div>
 							<div class="dropdown">
@@ -528,7 +528,8 @@
 									style="width: 40vw; min-width: 250px; max-width: 500px;"
 									src="https://chaocenter.rice.edu/sites/g/files/bxs3531/files/2020-09/Chao%20Center%20for%20Asian%20Studies%20center%20level%20logo%20formal%20White%20reversed%20horiz.png"
 									alt="CCAS logo" data-entity-type="file"></a></p>
-						<p>{supportingOrganization}</p> <!-- "Journal hosting supported by Fondren Library, Rice University." -->
+						<p>{supportingOrganization}</p>
+						<!-- "Journal hosting supported by Fondren Library, Rice University." -->
 					</div>
 
 					<div class="col-md col-md-2 align-self-center text-right" role="complementary">
@@ -653,8 +654,7 @@
 			type="text/javascript"></script>
 		<script src="{journalBaseUrl}/plugins/themes/healthSciences/libs/tag-it.min.js?v=3.3.0.14"
 			type="text/javascript"></script>
-		<script
-			src="{journalBaseUrl}/plugins/generic/citationStyleLanguage/js/articleCitation.js?v=3.3.0.14"
+		<script src="{journalBaseUrl}/plugins/generic/citationStyleLanguage/js/articleCitation.js?v=3.3.0.14"
 			type="text/javascript"></script>
 
 

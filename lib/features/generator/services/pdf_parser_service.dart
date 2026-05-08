@@ -113,15 +113,28 @@ class PdfParserService {
 
       // 5. Section Detection
       final lowerText = text.toLowerCase();
-      if (lowerText == 'abstract') {
+      if (lowerText == 'abstract' || lowerText.startsWith('abstract:')) {
         isAbstract = true;
         isKeywords = false;
         isReferences = false;
+        if (lowerText.startsWith('abstract:')) {
+          final content = text.substring(text.indexOf(':') + 1).trim();
+          if (content.isNotEmpty) {
+            abstractText = content;
+          }
+        }
         continue;
-      } else if (lowerText == 'keywords') {
+      } else if (lowerText == 'keywords' || lowerText.startsWith('keywords:') || lowerText.startsWith('keywords ')) {
         isKeywords = true;
         isAbstract = false;
         isReferences = false;
+        if (lowerText.startsWith('keywords:') || lowerText.startsWith('keywords ')) {
+          final splitIndex = text.indexOf(':');
+          final content = splitIndex != -1 ? text.substring(splitIndex + 1).trim() : text.substring(8).trim();
+          if (content.isNotEmpty) {
+            keywords = content;
+          }
+        }
         continue;
       } else if (lowerText == 'bibliography' || lowerText == 'references') {
         isReferences = true;
@@ -138,9 +151,24 @@ class PdfParserService {
       }
 
       // 6. Section Content
+      
+      // Stop metadata sections if we hit a likely section header
+      // We only stop on explicit headers to avoid cutting off metadata early if a line is short
+      if (isAbstract || isKeywords) {
+        final isExplicitHeader = RegExp(r'^(\d+\.?\s*|[A-Z]\.\s*)?(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References|Notes|Footnotes|About the Author|Acknowledgements|Works Cited)', caseSensitive: false).hasMatch(text);
+        
+        if (isExplicitHeader) {
+          isAbstract = false;
+          isKeywords = false;
+        }
+      }
+
       if (isAbstract) {
         abstractText += ' $text';
       } else if (isKeywords) {
+        if (keywords.isNotEmpty && !keywords.trim().endsWith(',')) {
+          keywords += ', ';
+        }
         keywords += text;
       } else if (isReferences) {
         referenceLines.add(text);
@@ -256,7 +284,8 @@ class PdfParserService {
       authorFullName: authorFullName,
       authorFirstName: authorFullName.isNotEmpty ? authorFullName.split(' ').first : '',
       authorLastName: authorFullName.isNotEmpty ? authorFullName.split(' ').last : '',
-      keywords: keywords.replaceFirst('Keywords ', '').trim(),
+      keywords: keywords.replaceFirst(RegExp(r'^keywords[:\s]*', caseSensitive: false), '').trim(),
+      articleAbstract: abstractText.replaceFirst(RegExp(r'^abstract[:\s]*', caseSensitive: false), '').trim(),
       articleBody: consolidatedBody.toString(),
       authorOrcid: authorOrcid,
       authorAffiliation: authorAffiliation,
@@ -308,8 +337,8 @@ class PdfParserService {
       // 1. Short line (< 100 chars)
       // 2. Doesn't end with a period, comma, or semicolon
       // 3. Or it's one of the standard section titles
-      final isHeader = (text.length < 100 && !RegExp(r'[.,;]$').hasMatch(text)) || 
-                       RegExp(r'^(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References)$', caseSensitive: false).hasMatch(text);
+      final isHeader = (text.length < 80 && !RegExp(r'[.,;]$').hasMatch(text)) || 
+                       RegExp(r'^(\d+\.?\s*)?(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References|Notes|Footnotes|About the Author|Acknowledgements)', caseSensitive: false).hasMatch(text);
 
       if (isHeader) {
         if (inParagraph) {
