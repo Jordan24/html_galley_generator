@@ -11,7 +11,6 @@ class ArticleMetadata {
   final String issue;
   final String articleId; // OJS submission/article ID (e.g. 113)
   final String submissionId; // Same as articleId typically
-  final String publicationId; // OJS publication ID (e.g. 107)
   final String issueViewId; // OJS issue view ID (e.g. 15)
   final String pdfGalleyId; // OJS galley/file ID for the PDF download (e.g. 191)
   final String publishedDate; // ISO8601 e.g. 2025-10-31
@@ -26,7 +25,6 @@ class ArticleMetadata {
   final String articleBibliography; // HTML or plain text bibliography
   final String articleFootnotes; // HTML or plain text footnotes
   final String titleMain; // Typically same as journalName or similar
-  final String issueId; // e.g. 15
 
   const ArticleMetadata({
     this.title = '',
@@ -41,7 +39,6 @@ class ArticleMetadata {
     this.issue = '',
     this.articleId = '',
     this.submissionId = '',
-    this.publicationId = '',
     this.issueViewId = '',
     this.pdfGalleyId = '',
     this.publishedDate = '',
@@ -56,7 +53,6 @@ class ArticleMetadata {
     this.articleBibliography = '',
     this.articleFootnotes = '',
     this.titleMain = '',
-    this.issueId = '',
   });
 
   ArticleMetadata copyWith({
@@ -72,7 +68,6 @@ class ArticleMetadata {
     String? issue,
     String? articleId,
     String? submissionId,
-    String? publicationId,
     String? issueViewId,
     String? pdfGalleyId,
     String? publishedDate,
@@ -87,7 +82,6 @@ class ArticleMetadata {
     String? articleBibliography,
     String? articleFootnotes,
     String? titleMain,
-    String? issueId,
   }) {
     return ArticleMetadata(
       title: title ?? this.title,
@@ -102,7 +96,6 @@ class ArticleMetadata {
       issue: issue ?? this.issue,
       articleId: articleId ?? this.articleId,
       submissionId: submissionId ?? this.submissionId,
-      publicationId: publicationId ?? this.publicationId,
       issueViewId: issueViewId ?? this.issueViewId,
       pdfGalleyId: pdfGalleyId ?? this.pdfGalleyId,
       publishedDate: publishedDate ?? this.publishedDate,
@@ -117,7 +110,6 @@ class ArticleMetadata {
       articleBibliography: articleBibliography ?? this.articleBibliography,
       articleFootnotes: articleFootnotes ?? this.articleFootnotes,
       titleMain: titleMain ?? this.titleMain,
-      issueId: issueId ?? this.issueId,
     );
   }
 }

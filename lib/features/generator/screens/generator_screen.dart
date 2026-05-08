@@ -56,7 +56,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   final _articleBibliographyCtrl = TextEditingController();
   final _articleFootnotesCtrl = TextEditingController();
   final _titleMainCtrl = TextEditingController();
-  final _issueIdCtrl = TextEditingController();
   final _abstractCtrl = TextEditingController();
   final _keywordsCtrl = TextEditingController();
   final _articleBodyHtmlCtrl = TextEditingController();
@@ -76,38 +75,87 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     super.initState();
     _loadSettings();
     final controllers = [
-      _titleCtrl, _authorFullNameCtrl, _authorFirstNameCtrl, _authorLastNameCtrl,
-      _authorOrcidCtrl, _authorAffiliationCtrl,
-      _volumeCtrl, _issueCtrl,
-      _articleIdCtrl, _submissionIdCtrl, _publicationIdCtrl, _issueViewIdCtrl,
-      _pdfGalleyIdCtrl, _publishedDateCtrl, _issuedDateCtrl,
-      _publishedDateMonYYYYCtrl, _publishYearCtrl,
-      _submittedDateCtrl, _modifiedDateCtrl,
-      _articleBibliographyCtrl, _articleFootnotesCtrl,
-      _titleMainCtrl, _issueIdCtrl,
-      _abstractCtrl, _keywordsCtrl, _articleBodyHtmlCtrl,
+      _titleCtrl,
+      _authorFullNameCtrl,
+      _authorFirstNameCtrl,
+      _authorLastNameCtrl,
+      _authorOrcidCtrl,
+      _authorAffiliationCtrl,
+      _volumeCtrl,
+      _issueCtrl,
+      _articleIdCtrl,
+      _submissionIdCtrl,
+      _publicationIdCtrl,
+      _issueViewIdCtrl,
+      _pdfGalleyIdCtrl,
+      _publishedDateCtrl,
+      _issuedDateCtrl,
+      _publishedDateMonYYYYCtrl,
+      _publishYearCtrl,
+      _submittedDateCtrl,
+      _modifiedDateCtrl,
+      _articleBibliographyCtrl,
+      _articleFootnotesCtrl,
+      _titleMainCtrl,
+      _abstractCtrl,
+      _keywordsCtrl,
+      _articleBodyHtmlCtrl,
+      _journalBaseUrlCtrl,
+      _journalPathCtrl,
+      _journalNameCtrl,
+      _journalAbbrevCtrl,
+      _journalIssnCtrl,
+      _journalDoiIdCtrl,
+      _journalOrganizationUrlCtrl,
+      _supportingOrganizationCtrl,
     ];
     for (final ctrl in controllers) {
-      ctrl.addListener(_rebuild);
+      ctrl.addListener(_onFieldChanged);
     }
-    _authorBioQuill.addListener(_rebuild);
+    _authorBioQuill.addListener(_onFieldChanged);
+  }
+
+  void _onFieldChanged() {
+    _rebuild();
+    _settingsRepo.save(_currentSettings);
   }
 
   @override
   void dispose() {
     final controllers = [
-      _titleCtrl, _authorFullNameCtrl, _authorFirstNameCtrl, _authorLastNameCtrl,
-      _authorOrcidCtrl, _authorAffiliationCtrl,
-      _volumeCtrl, _issueCtrl,
-      _articleIdCtrl, _submissionIdCtrl, _publicationIdCtrl, _issueViewIdCtrl,
-      _pdfGalleyIdCtrl, _publishedDateCtrl, _issuedDateCtrl,
-      _publishedDateMonYYYYCtrl, _publishYearCtrl,
-      _submittedDateCtrl, _modifiedDateCtrl,
-      _articleBibliographyCtrl, _articleFootnotesCtrl,
-      _titleMainCtrl, _issueIdCtrl,
-      _abstractCtrl, _keywordsCtrl, _articleBodyHtmlCtrl,
-      _journalBaseUrlCtrl, _journalPathCtrl, _journalNameCtrl, _journalAbbrevCtrl,
-      _journalIssnCtrl, _journalDoiIdCtrl, _journalOrganizationUrlCtrl, _supportingOrganizationCtrl,
+      _titleCtrl,
+      _authorFullNameCtrl,
+      _authorFirstNameCtrl,
+      _authorLastNameCtrl,
+      _authorOrcidCtrl,
+      _authorAffiliationCtrl,
+      _volumeCtrl,
+      _issueCtrl,
+      _articleIdCtrl,
+      _submissionIdCtrl,
+      _publicationIdCtrl,
+      _issueViewIdCtrl,
+      _pdfGalleyIdCtrl,
+      _publishedDateCtrl,
+      _issuedDateCtrl,
+      _publishedDateMonYYYYCtrl,
+      _publishYearCtrl,
+      _submittedDateCtrl,
+      _modifiedDateCtrl,
+      _articleBibliographyCtrl,
+      _articleFootnotesCtrl,
+      _titleMainCtrl,
+      _abstractCtrl,
+      _keywordsCtrl,
+      _articleBodyHtmlCtrl,
+      _journalBaseUrlCtrl,
+      _journalPathCtrl,
+      _journalNameCtrl,
+      _journalAbbrevCtrl,
+      _journalIssnCtrl,
+      _journalDoiIdCtrl,
+      _journalOrganizationUrlCtrl,
+      _supportingOrganizationCtrl,
     ];
     for (final ctrl in controllers) {
       ctrl.dispose();
@@ -120,8 +168,10 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
 
   ArticleMetadata get _currentMetadata {
     final fullName = _authorFullNameCtrl.text;
-    final lastName = fullName.isNotEmpty ? fullName.split(' ').last.toUpperCase() : '';
-    
+    final lastName = fullName.isNotEmpty
+        ? fullName.split(' ').last.toUpperCase()
+        : '';
+
     final delta = _authorBioQuill.document.toDelta();
     final converter = QuillDeltaToHtmlConverter(delta.toJson());
     final bioHtml = converter.convert();
@@ -139,7 +189,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       issue: _issueCtrl.text,
       articleId: _articleIdCtrl.text,
       submissionId: _submissionIdCtrl.text,
-      publicationId: _publicationIdCtrl.text,
       issueViewId: _issueViewIdCtrl.text,
       pdfGalleyId: _pdfGalleyIdCtrl.text,
       publishedDate: _publishedDateCtrl.text,
@@ -154,7 +203,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       articleBibliography: _articleBibliographyCtrl.text,
       articleFootnotes: _articleFootnotesCtrl.text,
       titleMain: _titleMainCtrl.text,
-      issueId: _issueIdCtrl.text,
     );
   }
 
@@ -167,6 +215,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     journalDoiId: _journalDoiIdCtrl.text,
     journalOrganizationUrl: _journalOrganizationUrlCtrl.text,
     supportingOrganization: _supportingOrganizationCtrl.text,
+    publicationId: _publicationIdCtrl.text,
   );
 
   Future<void> _loadSettings() async {
@@ -180,6 +229,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       _journalDoiIdCtrl.text = settings.journalDoiId;
       _journalOrganizationUrlCtrl.text = settings.journalOrganizationUrl;
       _supportingOrganizationCtrl.text = settings.supportingOrganization;
+      _publicationIdCtrl.text = settings.publicationId;
     });
   }
 
@@ -188,20 +238,22 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     try {
       final metadata = await _pdfParser.parse(file);
       setState(() {
-        _titleCtrl.text = metadata.title.replaceAll(RegExp(r'[^\x00-\x7F\u00C0-\u017F\u0180-\u024F]'), "'");
+        _titleCtrl.text = metadata.title.replaceAll(
+          RegExp(r'[^\x00-\x7F\u00C0-\u017F\u0180-\u024F]'),
+          "'",
+        );
         _authorFullNameCtrl.text = metadata.authorFullName;
         _authorFirstNameCtrl.text = metadata.authorFirstName;
         _authorLastNameCtrl.text = metadata.authorLastName;
         _authorOrcidCtrl.text = metadata.authorOrcid;
         _authorAffiliationCtrl.text = metadata.authorAffiliation;
-        
+
         _authorBioQuill.document = Document()..insert(0, metadata.authorBio);
-        
+
         _volumeCtrl.text = metadata.volume;
         _issueCtrl.text = metadata.issue;
         _articleIdCtrl.text = metadata.articleId;
         _submissionIdCtrl.text = metadata.submissionId;
-        _publicationIdCtrl.text = metadata.publicationId;
         _issueViewIdCtrl.text = metadata.issueViewId;
         _pdfGalleyIdCtrl.text = metadata.pdfGalleyId;
         _publishedDateCtrl.text = metadata.publishedDate;
@@ -213,7 +265,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _articleBibliographyCtrl.text = metadata.articleBibliography;
         _articleFootnotesCtrl.text = metadata.articleFootnotes;
         _titleMainCtrl.text = metadata.titleMain;
-        _issueIdCtrl.text = metadata.issueId;
         _abstractCtrl.text = metadata.abstract_;
         _keywordsCtrl.text = metadata.keywords;
         _articleBodyHtmlCtrl.text = metadata.articleBodyHtml;
@@ -238,19 +289,17 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => EditorScreen(
-          metadata: metadata,
-          settings: settings,
-        ),
+        builder: (context) =>
+            EditorScreen(metadata: metadata, settings: settings),
       ),
     );
   }
 
   void _showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -271,22 +320,17 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 1400;
-          final isMedium = constraints.maxWidth >= 900 && constraints.maxWidth < 1400;
+          final isMedium =
+              constraints.maxWidth >= 900 && constraints.maxWidth < 1400;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(32.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DropZone(
-                  selectedPdf: _selectedPdf,
-                  onFilePicked: _processFile,
-                ),
+                DropZone(selectedPdf: _selectedPdf, onFilePicked: _processFile),
                 const SizedBox(height: 32),
-                OutputPreviewBar(
-                  fileName: fileName,
-                  onGenerate: _generateHtml,
-                ),
+                OutputPreviewBar(fileName: fileName, onGenerate: _generateHtml),
                 const SizedBox(height: 32),
                 _buildFormLayout(isWide, isMedium),
               ],
@@ -313,7 +357,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       issueCtrl: _issueCtrl,
       articleIdCtrl: _articleIdCtrl,
       submissionIdCtrl: _submissionIdCtrl,
-      publicationIdCtrl: _publicationIdCtrl,
       issueViewIdCtrl: _issueViewIdCtrl,
       pdfGalleyIdCtrl: _pdfGalleyIdCtrl,
       publishedDateCtrl: _publishedDateCtrl,
@@ -325,7 +368,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       articleBibliographyCtrl: _articleBibliographyCtrl,
       articleFootnotesCtrl: _articleFootnotesCtrl,
       titleMainCtrl: _titleMainCtrl,
-      issueIdCtrl: _issueIdCtrl,
       abstractCtrl: _abstractCtrl,
       keywordsCtrl: _keywordsCtrl,
       articleBodyHtmlCtrl: _articleBodyHtmlCtrl,
@@ -340,6 +382,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       journalDoiIdCtrl: _journalDoiIdCtrl,
       journalOrganizationUrlCtrl: _journalOrganizationUrlCtrl,
       supportingOrganizationCtrl: _supportingOrganizationCtrl,
+      publicationIdCtrl: _publicationIdCtrl,
     );
 
     if (isWide) {
@@ -364,11 +407,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
           Expanded(
             flex: 2,
             child: Column(
-              children: [
-                authorForm,
-                const SizedBox(height: 24),
-                settingsForm,
-              ],
+              children: [authorForm, const SizedBox(height: 24), settingsForm],
             ),
           ),
         ],

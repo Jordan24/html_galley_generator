@@ -259,7 +259,6 @@ class PdfParserService {
       issue: issue.isEmpty ? '1' : issue,
       articleId: articleId,
       submissionId: articleId,
-      publicationId: '', 
       issueViewId: '',   
       pdfGalleyId: '',   
       publishedDate: DateTime.now().toString().split(' ').first,
@@ -269,7 +268,6 @@ class PdfParserService {
       submittedDate: DateTime.now().toString().split(' ').first,
       modifiedDate: DateTime.now().toString().split(' ').first,
       titleMain: 'Transnational Asia', // Default or extracted
-      issueId: '', 
     );
   }
 

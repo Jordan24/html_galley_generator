@@ -12,6 +12,7 @@ class SettingsForm extends StatelessWidget {
     required this.journalDoiIdCtrl,
     required this.journalOrganizationUrlCtrl,
     required this.supportingOrganizationCtrl,
+    required this.publicationIdCtrl,
   });
 
   final TextEditingController journalBaseUrlCtrl;
@@ -22,6 +23,7 @@ class SettingsForm extends StatelessWidget {
   final TextEditingController journalDoiIdCtrl;
   final TextEditingController journalOrganizationUrlCtrl;
   final TextEditingController supportingOrganizationCtrl;
+  final TextEditingController publicationIdCtrl;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +45,10 @@ class SettingsForm extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             LabeledTextField(
+              label: 'Journal Name',
+              controller: journalNameCtrl,
+            ),
+            LabeledTextField(
               label: 'Journal Base URL',
               controller: journalBaseUrlCtrl,
             ),
@@ -50,22 +56,18 @@ class SettingsForm extends StatelessWidget {
               children: [
                 Expanded(
                   child: LabeledTextField(
-                    label: 'Journal Path',
-                    controller: journalPathCtrl,
+                    label: 'Abbreviation',
+                    controller: journalAbbrevCtrl,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: LabeledTextField(
-                    label: 'Abbreviation',
-                    controller: journalAbbrevCtrl,
+                    label: 'Journal Path',
+                    controller: journalPathCtrl,
                   ),
                 ),
               ],
-            ),
-            LabeledTextField(
-              label: 'Journal Name',
-              controller: journalNameCtrl,
             ),
             Row(
               children: [
@@ -85,13 +87,17 @@ class SettingsForm extends StatelessWidget {
               ],
             ),
             LabeledTextField(
-              label: 'Organization URL',
-              controller: journalOrganizationUrlCtrl,
+              label: 'Publication ID',
+              controller: publicationIdCtrl,
             ),
             LabeledTextField(
-              label: 'Supporting Organization',
+              label: 'Supporting Organization Acknowledgement',
               controller: supportingOrganizationCtrl,
               maxLines: 2,
+            ),
+            LabeledTextField(
+              label: 'Organization URL',
+              controller: journalOrganizationUrlCtrl,
             ),
           ],
         ),

@@ -9,7 +9,6 @@ class ArticleMetadataForm extends StatelessWidget {
     required this.issueCtrl,
     required this.articleIdCtrl,
     required this.submissionIdCtrl,
-    required this.publicationIdCtrl,
     required this.issueViewIdCtrl,
     required this.pdfGalleyIdCtrl,
     required this.publishedDateCtrl,
@@ -21,7 +20,6 @@ class ArticleMetadataForm extends StatelessWidget {
     required this.articleBibliographyCtrl,
     required this.articleFootnotesCtrl,
     required this.titleMainCtrl,
-    required this.issueIdCtrl,
     required this.abstractCtrl,
     required this.keywordsCtrl,
     required this.articleBodyHtmlCtrl,
@@ -32,7 +30,6 @@ class ArticleMetadataForm extends StatelessWidget {
   final TextEditingController issueCtrl;
   final TextEditingController articleIdCtrl;
   final TextEditingController submissionIdCtrl;
-  final TextEditingController publicationIdCtrl;
   final TextEditingController issueViewIdCtrl;
   final TextEditingController pdfGalleyIdCtrl;
   final TextEditingController publishedDateCtrl;
@@ -44,7 +41,6 @@ class ArticleMetadataForm extends StatelessWidget {
   final TextEditingController articleBibliographyCtrl;
   final TextEditingController articleFootnotesCtrl;
   final TextEditingController titleMainCtrl;
-  final TextEditingController issueIdCtrl;
   final TextEditingController abstractCtrl;
   final TextEditingController keywordsCtrl;
   final TextEditingController articleBodyHtmlCtrl;
@@ -94,13 +90,6 @@ class ArticleMetadataForm extends StatelessWidget {
                     controller: articleIdCtrl,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: LabeledTextField(
-                    label: 'Issue ID',
-                    controller: issueIdCtrl,
-                  ),
-                ),
               ],
             ),
             Row(
@@ -109,13 +98,6 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Submission ID',
                     controller: submissionIdCtrl,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: LabeledTextField(
-                    label: 'Publication ID',
-                    controller: publicationIdCtrl,
                   ),
                 ),
                 const SizedBox(width: 16),

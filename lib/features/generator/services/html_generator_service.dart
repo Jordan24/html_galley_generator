@@ -66,8 +66,7 @@ class HtmlGeneratorService {
       '{supportingOrganization}': _clean(settings.supportingOrganization),
       
       '{articleId}': metadata.articleId.trim(),
-      '{publicationId}': metadata.publicationId.trim(),
-      '{issueId}': metadata.issueId.trim(),
+      '{publicationId}': settings.publicationId.trim(),
       '{issueViewId}': metadata.issueViewId.trim(),
       '{pdfGalleyId}': metadata.pdfGalleyId.trim(),
       

@@ -11,6 +11,7 @@ class SettingsRepository {
   static const _keyJournalDoiId = 'journalDoiId';
   static const _keyJournalOrgUrl = 'journalOrganizationUrl';
   static const _keySupportingOrg = 'supportingOrganization';
+  static const _keyPublicationId = 'publicationId';
 
   Future<JournalSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -24,6 +25,7 @@ class SettingsRepository {
       journalDoiId: prefs.getString(_keyJournalDoiId) ?? defaults.journalDoiId,
       journalOrganizationUrl: prefs.getString(_keyJournalOrgUrl) ?? defaults.journalOrganizationUrl,
       supportingOrganization: prefs.getString(_keySupportingOrg) ?? defaults.supportingOrganization,
+      publicationId: prefs.getString(_keyPublicationId) ?? defaults.publicationId,
     );
   }
 
@@ -37,5 +39,6 @@ class SettingsRepository {
     await prefs.setString(_keyJournalDoiId, settings.journalDoiId);
     await prefs.setString(_keyJournalOrgUrl, settings.journalOrganizationUrl);
     await prefs.setString(_keySupportingOrg, settings.supportingOrganization);
+    await prefs.setString(_keyPublicationId, settings.publicationId);
   }
 }
