@@ -18,13 +18,43 @@ class HtmlGeneratorService {
   }
 
   Future<String> buildHtml(ArticleMetadata metadata, JournalSettings settings) async {
-    String template = await rootBundle.loadString('assets/template.html');
+    final articleMain = await buildArticleMain(metadata, settings);
+    return buildFullHtml(articleMain, metadata, settings);
+  }
 
+  Future<String> buildArticleMain(ArticleMetadata metadata, JournalSettings settings) async {
+    String template = await rootBundle.loadString('assets/template.html');
+    final articleMainMatch = RegExp(
+      r'(<div class="article-details-main" id="articleMain">)(.*?)(</div>\s*</div>\s*<div class="col-lg-12 order-lg-3 article-footer-hook">)',
+      dotAll: true,
+    ).firstMatch(template);
+
+    if (articleMainMatch == null) return '';
+    
+    String content = articleMainMatch.group(2)!;
+    return _applyReplacements(content, metadata, settings);
+  }
+
+  Future<String> buildFullHtml(String articleMainContent, ArticleMetadata metadata, JournalSettings settings) async {
+    String template = await rootBundle.loadString('assets/template.html');
+    
+    // First apply general replacements to the whole template EXCEPT the articleMain part
+    // Actually, it's easier to replace the articleMain part in the template with a placeholder first.
+    final resultTemplate = template.replaceFirstMapped(
+      RegExp(r'(<div class="article-details-main" id="articleMain">)(.*?)(</div>\s*</div>\s*<div class="col-lg-12 order-lg-3 article-footer-hook">)', dotAll: true),
+      (match) => '${match.group(1)}{articleMain}${match.group(3)}'
+    );
+
+    String result = _applyReplacements(resultTemplate, metadata, settings);
+    return result.replaceFirst('{articleMain}', articleMainContent);
+  }
+
+  String _applyReplacements(String text, ArticleMetadata metadata, JournalSettings settings) {
     String baseUrl = settings.journalBaseUrl.trim();
     if (baseUrl.endsWith('/')) {
       baseUrl = baseUrl.substring(0, baseUrl.length - 1);
     }
-    
+
     final replacements = {
       '{journalBaseUrl}': baseUrl,
       '{journalPath}': settings.journalPath.trim(),
@@ -69,11 +99,10 @@ class HtmlGeneratorService {
       '{articleFootnotes}': metadata.articleFootnotes,
     };
 
-    String result = template;
+    String result = text;
     replacements.forEach((key, value) {
       result = result.replaceAll(key, value);
     });
-
     return result;
   }
 

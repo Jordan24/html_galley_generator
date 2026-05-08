@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
@@ -14,6 +13,7 @@ import '../widgets/author_metadata_form.dart';
 import '../widgets/drop_zone.dart';
 import '../widgets/output_preview_bar.dart';
 import '../widgets/settings_form.dart';
+import 'editor_screen.dart';
 
 /// The main screen of the application. Orchestrates PDF parsing,
 /// metadata editing, settings persistence, and HTML galley generation.
@@ -235,13 +235,15 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
 
     await _settingsRepo.save(settings);
 
-    final suggestedName = _htmlGenerator.buildFileName(metadata);
-    final saveLocation = await getSaveLocation(suggestedName: suggestedName);
-    if (saveLocation == null) return;
-
-    final htmlContent = await _htmlGenerator.buildHtml(metadata, settings);
-    await File(saveLocation.path).writeAsString(htmlContent);
-    _showSnackBar('HTML Galley generated successfully!');
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditorScreen(
+          metadata: metadata,
+          settings: settings,
+        ),
+      ),
+    );
   }
 
   void _showSnackBar(String message) {

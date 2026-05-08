@@ -1,0 +1,186 @@
+import 'dart:io';
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
+import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart' as vsc;
+
+import '../models/article_metadata.dart';
+import '../models/journal_settings.dart';
+import '../services/html_generator_service.dart';
+
+class EditorScreen extends StatefulWidget {
+  final ArticleMetadata metadata;
+  final JournalSettings settings;
+
+  const EditorScreen({
+    super.key,
+    required this.metadata,
+    required this.settings,
+  });
+
+  @override
+  State<EditorScreen> createState() => _EditorScreenState();
+}
+
+class _EditorScreenState extends State<EditorScreen> {
+  late QuillController _controller;
+  final _htmlGenerator = HtmlGeneratorService();
+  bool _isSaving = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContent();
+  }
+
+  Future<void> _loadContent() async {
+    try {
+      final html = await _htmlGenerator.buildArticleMain(widget.metadata, widget.settings);
+      final delta = HtmlToDelta().convert(html);
+      setState(() {
+        _controller = QuillController(
+          document: Document.fromDelta(delta),
+          selection: const TextSelection.collapsed(offset: 0),
+        );
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading content: $e');
+      setState(() {
+        _controller = QuillController.basic();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _isSaving = true);
+    try {
+      final deltaJson = _controller.document.toDelta().toJson();
+      final converter = vsc.QuillDeltaToHtmlConverter(
+        List<Map<String, dynamic>>.from(deltaJson),
+        vsc.ConverterOptions.forEmail(),
+      );
+      final editedHtml = converter.convert();
+
+      final fullHtml = await _htmlGenerator.buildFullHtml(
+        editedHtml,
+        widget.metadata,
+        widget.settings,
+      );
+
+      final suggestedName = _htmlGenerator.buildFileName(widget.metadata);
+      final saveLocation = await getSaveLocation(suggestedName: suggestedName);
+      
+      if (saveLocation != null) {
+        await File(saveLocation.path).writeAsString(fullHtml);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('HTML Galley saved successfully!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (!_isLoading) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Edit HTML Galley'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF334155),
+        actions: [
+          if (_isSaving)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: FilledButton.icon(
+                onPressed: _save,
+                icon: const Icon(Icons.save, size: 18),
+                label: const Text('Save Galley'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF334155),
+                ),
+              ),
+            ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                QuillSimpleToolbar(
+                  controller: _controller,
+                  config: const QuillSimpleToolbarConfig(
+                    multiRowsDisplay: false,
+                    showUndo: true,
+                    showRedo: true,
+                    showBoldButton: true,
+                    showItalicButton: true,
+                    showUnderLineButton: true,
+                    showStrikeThrough: true,
+                    showColorButton: true,
+                    showBackgroundColorButton: true,
+                    showListNumbers: true,
+                    showListBullets: true,
+                    showListCheck: false,
+                    showCodeBlock: true,
+                    showQuote: true,
+                    showIndent: true,
+                    showLink: true,
+                    showDirection: false,
+                    showSearchButton: true,
+                    showSubscript: false,
+                    showSuperscript: false,
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    child: QuillEditor.basic(
+                      controller: _controller,
+                      config: const QuillEditorConfig(
+                        padding: EdgeInsets.zero,
+                        autoFocus: true,
+                        expands: true,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
