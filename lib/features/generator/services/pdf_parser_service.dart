@@ -267,7 +267,7 @@ class PdfParserService {
       publishYear: DateTime.now().year.toString(),
       submittedDate: DateTime.now().toString().split(' ').first,
       modifiedDate: DateTime.now().toString().split(' ').first,
-      titleMain: 'Transnational Asia', // Default or extracted
+      titleMain: title.contains(':') ? title.split(':').first.trim() : title,
     );
   }
 

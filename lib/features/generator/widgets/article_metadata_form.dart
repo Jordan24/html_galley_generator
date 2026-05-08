@@ -173,18 +173,6 @@ class ArticleMetadataForm extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             LabeledTextField(
-              label: 'Article Bibliography (HTML)',
-              controller: articleBibliographyCtrl,
-              maxLines: 5,
-            ),
-            const SizedBox(height: 16),
-            LabeledTextField(
-              label: 'Article Footnotes (HTML)',
-              controller: articleFootnotesCtrl,
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            LabeledTextField(
               label: 'Abstract',
               controller: abstractCtrl,
               maxLines: 5,
@@ -199,6 +187,18 @@ class ArticleMetadataForm extends StatelessWidget {
               label: 'Article Body (HTML)',
               controller: articleBodyHtmlCtrl,
               maxLines: 15,
+            ),
+            const SizedBox(height: 16),
+            LabeledTextField(
+              label: 'Article Bibliography (HTML)',
+              controller: articleBibliographyCtrl,
+              maxLines: 5,
+            ),
+            const SizedBox(height: 16),
+            LabeledTextField(
+              label: 'Article Footnotes (HTML)',
+              controller: articleFootnotesCtrl,
+              maxLines: 3,
             ),
           ],
         ),

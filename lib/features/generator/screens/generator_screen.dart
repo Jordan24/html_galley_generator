@@ -75,7 +75,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     super.initState();
     _loadSettings();
     final controllers = [
-      _titleCtrl,
       _authorFullNameCtrl,
       _authorFirstNameCtrl,
       _authorLastNameCtrl,
@@ -112,7 +111,18 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     for (final ctrl in controllers) {
       ctrl.addListener(_onFieldChanged);
     }
+    _titleCtrl.addListener(_onTitleChanged);
     _authorBioQuill.addListener(_onFieldChanged);
+  }
+
+  void _onTitleChanged() {
+    final text = _titleCtrl.text;
+    if (text.contains(':')) {
+      _titleMainCtrl.text = text.split(':').first.trim();
+    } else {
+      _titleMainCtrl.text = text;
+    }
+    _onFieldChanged();
   }
 
   void _onFieldChanged() {
