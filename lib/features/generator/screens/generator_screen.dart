@@ -123,14 +123,14 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     if (_articleIdCtrl.text.isNotEmpty && 
         _journalBaseUrlCtrl.text.isNotEmpty && 
         _journalPathCtrl.text.isNotEmpty &&
-        _pdfGalleyIdCtrl.text.isEmpty &&
+        (_pdfGalleyIdCtrl.text.isEmpty || _issueViewIdCtrl.text.isEmpty) &&
         !_isScraping) {
-      _autoFillPdfGalleyId();
+      _autoFillScrapedIds();
     }
     _onFieldChanged();
   }
 
-  Future<void> _autoFillPdfGalleyId() async {
+  Future<void> _autoFillScrapedIds() async {
     if (_isScraping) return;
     
     final articleId = _articleIdCtrl.text;
@@ -139,7 +139,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
 
     setState(() => _isScraping = true);
 
-    final galleyId = await _ojsScraper.scrapePdfGalleyId(
+    final result = await _ojsScraper.scrapeArticlePage(
       baseUrl: baseUrl,
       journalPath: path,
       articleId: articleId,
@@ -148,8 +148,11 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     if (mounted) {
       setState(() {
         _isScraping = false;
-        if (galleyId != null && _pdfGalleyIdCtrl.text.isEmpty) {
-          _pdfGalleyIdCtrl.text = galleyId;
+        if (result.pdfGalleyId != null && _pdfGalleyIdCtrl.text.isEmpty) {
+          _pdfGalleyIdCtrl.text = result.pdfGalleyId!;
+        }
+        if (result.issueViewId != null && _issueViewIdCtrl.text.isEmpty) {
+          _issueViewIdCtrl.text = result.issueViewId!;
         }
       });
     }
