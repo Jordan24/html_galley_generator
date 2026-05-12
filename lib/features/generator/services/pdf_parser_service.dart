@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Rect;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../models/article_metadata.dart';
 
@@ -20,7 +21,7 @@ class PdfParserService {
     String authorOrcid = '';
     String authorAffiliation = '';
     String authorBio = '';
-    List<String> bodyLines = [];
+    List<_RichLine> bodyRichLines = [];
     List<String> referenceLines = [];
     List<String> footnoteLines = [];
 
@@ -33,22 +34,67 @@ class PdfParserService {
       authorFullName = _clean(info.author);
     }
 
+    // 2. Build a per-page map of URI annotations (bounds → uri) for link detection
+    final Map<int, List<_LinkAnnotation>> pageLinks = {};
+    for (int i = 0; i < document.pages.count; i++) {
+      final page = document.pages[i];
+      final List<_LinkAnnotation> links = [];
+      for (int j = 0; j < page.annotations.count; j++) {
+        final annotation = page.annotations[j];
+        if (annotation is PdfUriAnnotation && annotation.uri.isNotEmpty) {
+          links.add(_LinkAnnotation(annotation.bounds, annotation.uri));
+        }
+      }
+      if (links.isNotEmpty) pageLinks[i] = links;
+    }
+
+    // 3. Process Lines into RichLines for geometric analysis
+    final List<_RichLine> allRichLines = [];
+    for (final line in lines) {
+      final pageIndex = line.pageIndex;
+      final pageLinksForPage = pageLinks[pageIndex] ?? [];
+      
+      final List<_RichWord> richWords = [];
+      for (final word in line.wordCollection) {
+        final uri = _findLinkForBounds(word.bounds, pageLinksForPage);
+        richWords.add(_RichWord(
+          text: _clean(word.text),
+          bounds: word.bounds,
+          fontSize: word.fontSize,
+          fontStyle: word.fontStyle,
+          pageIndex: pageIndex,
+          uri: uri,
+        ));
+      }
+      
+      if (richWords.isNotEmpty) {
+        allRichLines.add(_RichLine(
+          words: richWords,
+          text: _clean(line.text),
+          bounds: line.bounds,
+          fontSize: line.fontSize,
+        ));
+      }
+    }
+
+    // Calculate document baselines
+    final standardMargin = _calculateStandardMargin(allRichLines);
+    final standardLineHeight = _calculateStandardLineHeight(allRichLines);
+
     bool isAbstract = false;
     bool isKeywords = false;
     bool isReferences = false;
     bool isFootnotes = false;
     List<String> titleLines = [];
 
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i];
-      final text = _clean(line.text);
-      final fontSize = line.fontSize;
+    for (int i = 0; i < allRichLines.length; i++) {
+      final richLine = allRichLines[i];
+      final text = richLine.plainText;
+      final fontSize = richLine.fontSize;
 
       if (text.isEmpty) continue;
 
-      // 1. Metadata Extraction (regardless of position)
-      
-      // Volume/Issue
+      // --- Metadata Extraction (Restored from working version) ---
       if (text.contains('Volume') && text.contains('Issue')) {
         final volMatch = RegExp(r'Volume\s+(\d+)').firstMatch(text);
         final issMatch = RegExp(r'Issue\s+(\d+)').firstMatch(text);
@@ -56,13 +102,10 @@ class PdfParserService {
         if (issMatch != null) issue = issMatch.group(1)!;
       }
 
-      // Article ID from DOI (often in footer)
       if (text.contains('doi.org')) {
-        // Extract the DOI URL part (handle optional protocol)
         final doiMatch = RegExp(r'(?:https?://)?doi\.org/[^\s]+').firstMatch(text);
         if (doiMatch != null) {
           String doiUrl = doiMatch.group(0)!;
-          // Trim trailing punctuation that might be part of a sentence
           doiUrl = doiUrl.replaceAll(RegExp(r'[./,;]+$'), '');
           final parts = doiUrl.split('.');
           if (parts.isNotEmpty) {
@@ -74,44 +117,47 @@ class PdfParserService {
         }
       }
 
-      // 2. Footer and Header Detection
-      final pageIndex = line.pageIndex;
+      // --- Footer and Header Detection ---
+      final pageIndex = richLine.pageIndex;
       final pageHeight = document.pages[pageIndex].size.height;
-      final isBottom = line.bounds.top > pageHeight * 0.92;
+      final isBottom = richLine.bounds.top > pageHeight * 0.92;
 
-      // Skip lines that are purely page numbers or common footer text
       final isPageNumber = RegExp(r'^\d+$').hasMatch(text);
-      final isJournalFooter = text.contains('Transnational Asia') || (text.contains('Volume') && text.contains('Issue'));
+      final isJournalFooter =
+          text.contains('Transnational Asia') || (text.contains('Volume') && text.contains('Issue'));
 
       if (isBottom || isPageNumber || isJournalFooter) {
         continue;
       }
 
-      // 3. Title Detection
-      // Heuristic: Large font (>13pt), near the top (first 20 lines)
+      // --- Title Detection ---
       if (fontSize > 13.5 && i < 20) {
         titleLines.add(text);
         continue;
       }
 
-      // If we found title lines and font size dropped, use them as priority over metadata
       if (titleLines.isNotEmpty && fontSize <= 13.5) {
         final extractedTitle = titleLines.join(' ');
         if (extractedTitle.length > title.length) {
           title = extractedTitle;
         }
-        titleLines = []; // Reset to avoid re-triggering
+        titleLines = [];
       }
 
-      // 4. Author Detection
-      // Heuristic: Medium font (11-13pt), after title, near start
-      if (authorFullName.isEmpty && title.isNotEmpty && fontSize >= 11.0 && fontSize <= 13.0 && i < 30) {
-        if (!text.toLowerCase().contains('volume') && !text.toLowerCase().contains('issue') && !text.toLowerCase().contains('abstract')) {
+      // --- Author Detection ---
+      if (authorFullName.isEmpty &&
+          title.isNotEmpty &&
+          fontSize >= 11.0 &&
+          fontSize <= 13.0 &&
+          i < 30) {
+        if (!text.toLowerCase().contains('volume') &&
+            !text.toLowerCase().contains('issue') &&
+            !text.toLowerCase().contains('abstract')) {
           authorFullName = text;
         }
       }
 
-      // 5. Section Detection
+      // --- Section Detection ---
       final lowerText = text.toLowerCase();
       if (lowerText == 'abstract' || lowerText.startsWith('abstract:')) {
         isAbstract = true;
@@ -119,21 +165,20 @@ class PdfParserService {
         isReferences = false;
         if (lowerText.startsWith('abstract:')) {
           final content = text.substring(text.indexOf(':') + 1).trim();
-          if (content.isNotEmpty) {
-            abstractText = content;
-          }
+          if (content.isNotEmpty) abstractText = content;
         }
         continue;
-      } else if (lowerText == 'keywords' || lowerText.startsWith('keywords:') || lowerText.startsWith('keywords ')) {
+      } else if (lowerText == 'keywords' ||
+          lowerText.startsWith('keywords:') ||
+          lowerText.startsWith('keywords ')) {
         isKeywords = true;
         isAbstract = false;
         isReferences = false;
         if (lowerText.startsWith('keywords:') || lowerText.startsWith('keywords ')) {
           final splitIndex = text.indexOf(':');
-          final content = splitIndex != -1 ? text.substring(splitIndex + 1).trim() : text.substring(8).trim();
-          if (content.isNotEmpty) {
-            keywords = content;
-          }
+          final content =
+              splitIndex != -1 ? text.substring(splitIndex + 1).trim() : text.substring(8).trim();
+          if (content.isNotEmpty) keywords = content;
         }
         continue;
       } else if (lowerText == 'bibliography' || lowerText == 'references') {
@@ -150,19 +195,20 @@ class PdfParserService {
         continue;
       }
 
-      // 6. Section Content
-      
       // Stop metadata sections if we hit a likely section header
-      // We only stop on explicit headers to avoid cutting off metadata early if a line is short
       if (isAbstract || isKeywords) {
-        final isExplicitHeader = RegExp(r'^(\d+\.?\s*|[A-Z]\.\s*)?(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References|Notes|Footnotes|About the Author|Acknowledgements|Works Cited)', caseSensitive: false).hasMatch(text);
-        
+        final isExplicitHeader = RegExp(
+          r'^(\d+\.?\s*|[A-Z]\.\s*)?(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References|Notes|Footnotes|About the Author|Acknowledgements|Works Cited)',
+          caseSensitive: false,
+        ).hasMatch(text);
+
         if (isExplicitHeader) {
           isAbstract = false;
           isKeywords = false;
         }
       }
 
+      // --- Section Content ---
       if (isAbstract) {
         abstractText += ' $text';
       } else if (isKeywords) {
@@ -175,37 +221,34 @@ class PdfParserService {
       } else if (isFootnotes) {
         footnoteLines.add(text);
       } else if (title.isNotEmpty && authorFullName.isNotEmpty && fontSize >= 8.5 && fontSize <= 13.5) {
-        // Body content - include headers (larger font)
         if (text.length > 3) {
-          bodyLines.add(text);
+          bodyRichLines.add(richLine);
         }
       }
     }
 
-    // 8. Bio and Affiliation Extraction (Heuristic)
+    // --- Bio and Affiliation Extraction ---
     if (authorFullName.isNotEmpty) {
-      // Search for author name at the end of the document
       final bioRegex = RegExp('${RegExp.escape(authorFullName)}\\s+is\\s+');
       for (int i = lines.length - 1; i >= 0; i--) {
         final line = lines[i];
         if (bioRegex.hasMatch(line.text)) {
           List<String> bioParts = [_clean(line.text)];
           int j = i + 1;
-          // Collect lines until a big gap, page number, or bibliography starts
           while (j < lines.length) {
             final nextLine = lines[j];
             final nextText = _clean(nextLine.text);
             if (nextText.isEmpty) break;
             if (nextText.toLowerCase() == 'bibliography' || nextText == 'Bibliography') break;
-            if (RegExp(r'^\d+$').hasMatch(nextText)) break; // Page number
-            
+            if (RegExp(r'^\d+$').hasMatch(nextText)) break;
             bioParts.add(nextText);
             j++;
           }
           authorBio = bioParts.join(' ');
-          
-          // Affiliation heuristic: Look for 'University', 'Institute', or 'College' in the bio
-          final affMatch = RegExp(r'at\s+(the\s+)?([^.]+University[^.]+|[^.]+Institute[^.]+|[^.]+College[^.]+)').firstMatch(authorBio);
+
+          final affMatch = RegExp(
+            r'at\s+(the\s+)?([^.]+University[^.]+|[^.]+Institute[^.]+|[^.]+College[^.]+)',
+          ).firstMatch(authorBio);
           if (affMatch != null) {
             authorAffiliation = affMatch.group(2)!.trim();
           }
@@ -214,7 +257,7 @@ class PdfParserService {
       }
     }
 
-    // 9. ORCID Extraction
+    // --- ORCID Extraction ---
     final orcidPattern = RegExp(r'(\d{4}[-\s\.]\d{4}[-\s\.]\d{4}[-\s\.]\d{3}[0-9X])');
     var match = orcidPattern.firstMatch(fullText);
     match ??= orcidPattern.firstMatch(info.keywords);
@@ -238,7 +281,7 @@ class PdfParserService {
       authorOrcid = match.group(1)!.replaceAll(RegExp(r'[\s\.]'), '-');
     }
 
-    // 10. DOI/Article ID Extraction from Annotations if not found in text
+    // --- DOI/Article ID Extraction from Annotations if still not found ---
     if (articleId.isEmpty) {
       for (int i = 0; i < document.pages.count; i++) {
         final page = document.pages[i];
@@ -268,13 +311,15 @@ class PdfParserService {
     final consolidatedBody = StringBuffer();
     if (abstractText.isNotEmpty) {
       consolidatedBody.writeln('<h2>Abstract</h2>');
-      consolidatedBody.writeln('<p>${abstractText.replaceFirst('Abstract ', '').trim()}</p>');
+      consolidatedBody
+          .writeln('<p>${abstractText.replaceFirst('Abstract ', '').trim()}</p>');
     }
     if (keywords.isNotEmpty) {
       consolidatedBody.writeln('<h2>Keywords</h2>');
-      consolidatedBody.writeln('<p>${keywords.replaceFirst('Keywords ', '').trim()}</p>');
+      consolidatedBody
+          .writeln('<p>${keywords.replaceFirst('Keywords ', '').trim()}</p>');
     }
-    consolidatedBody.writeln(_processBodyLines(bodyLines));
+    consolidatedBody.writeln(_processBodyRichLines(bodyRichLines, standardMargin, standardLineHeight));
     consolidatedBody.writeln(_processReferenceLines(referenceLines));
     consolidatedBody.writeln(_processFootnoteLines(footnoteLines));
 
@@ -284,8 +329,10 @@ class PdfParserService {
       authorFullName: authorFullName,
       authorFirstName: authorFullName.isNotEmpty ? authorFullName.split(' ').first : '',
       authorLastName: authorFullName.isNotEmpty ? authorFullName.split(' ').last : '',
-      keywords: keywords.replaceFirst(RegExp(r'^keywords[:\s]*', caseSensitive: false), '').trim(),
-      articleAbstract: abstractText.replaceFirst(RegExp(r'^abstract[:\s]*', caseSensitive: false), '').trim(),
+      keywords:
+          keywords.replaceFirst(RegExp(r'^keywords[:\s]*', caseSensitive: false), '').trim(),
+      articleAbstract:
+          abstractText.replaceFirst(RegExp(r'^abstract[:\s]*', caseSensitive: false), '').trim(),
       articleBody: consolidatedBody.toString(),
       authorOrcid: authorOrcid,
       authorAffiliation: authorAffiliation,
@@ -294,8 +341,8 @@ class PdfParserService {
       issue: issue.isEmpty ? '1' : issue,
       articleId: articleId,
       submissionId: articleId,
-      issueViewId: '',   
-      pdfGalleyId: '',   
+      issueViewId: '',
+      pdfGalleyId: '',
       publishedDate: DateTime.now().toString().split(' ').first,
       issuedDate: DateTime.now().toString().split(' ').first,
       publishedDateMonYYYY: _formatMonYYYY(DateTime.now()),
@@ -306,58 +353,141 @@ class PdfParserService {
     );
   }
 
-  String _formatMonYYYY(DateTime date) {
-    final months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
-    return '${months[date.month - 1]} ${date.year}';
+  // ---------------------------------------------------------------------------
+  // Geometric Helpers for Baselines
+  // ---------------------------------------------------------------------------
+
+  double _calculateStandardMargin(List<_RichLine> lines) {
+    if (lines.isEmpty) return 0.0;
+    final Map<int, int> counts = {};
+    for (final line in lines) {
+      final left = line.bounds.left.round();
+      counts[left] = (counts[left] ?? 0) + 1;
+    }
+    // Return the most frequent left margin
+    var maxCount = -1;
+    var mostFrequent = 0.0;
+    counts.forEach((left, count) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostFrequent = left.toDouble();
+      }
+    });
+    return mostFrequent;
   }
 
-  String _clean(String text) {
-    if (text.isEmpty) return '';
-    return text.trim()
-      .replaceAll('\uFFFD', "'")
-      .replaceAll(RegExp(r'[\u2018\u2019\u201A\u201B\u2032\u2035\u02BC\u02BD\u02C8\u02CA\u02CB\u00B4\u0060\u0090\u0091\u0092]'), "'")
-      .replaceAll(RegExp(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u0093\u0094\u00AB\u00BB]'), '"')
-      .replaceAll(RegExp(r'[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]'), '-')
-      .replaceAll('\uFB01', 'fi')
-      .replaceAll('\uFB02', 'fl')
-      .replaceAll(RegExp(r'[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]'), ' ')
-      .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
-      .replaceAll(RegExp(r'\s+'), ' ');
+  double _calculateStandardLineHeight(List<_RichLine> lines) {
+    if (lines.length < 2) return 12.0;
+    final Map<int, int> counts = {};
+    for (int i = 0; i < lines.length - 1; i++) {
+      final current = lines[i];
+      final next = lines[i + 1];
+      if (current.pageIndex == next.pageIndex) {
+        final diff = (next.bounds.top - current.bounds.top).round();
+        if (diff > 5 && diff < 50) { // Reasonable range for line heights
+          counts[diff] = (counts[diff] ?? 0) + 1;
+        }
+      }
+    }
+    var maxCount = -1;
+    var mostFrequent = 12.0;
+    counts.forEach((diff, count) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostFrequent = diff.toDouble();
+      }
+    });
+    return mostFrequent;
   }
 
-  String _processBodyLines(List<String> lines) {
+  // ---------------------------------------------------------------------------
+  // Body / section processors
+  // ---------------------------------------------------------------------------
+
+  String _processBodyRichLines(List<_RichLine> lines, double standardMargin, double standardLineHeight) {
     final buffer = StringBuffer();
     bool inParagraph = false;
+    bool inBlockquote = false;
 
     for (int i = 0; i < lines.length; i++) {
-      final text = lines[i].trim();
-      if (text.isEmpty) continue;
+      final richLine = lines[i];
+      final plainText = richLine.plainText;
+      if (plainText.isEmpty) continue;
 
-      // Header heuristic:
-      // 1. Short line (< 100 chars)
-      // 2. Doesn't end with a period, comma, or semicolon
-      // 3. Or it's one of the standard section titles
-      final isHeader = (text.length < 80 && !RegExp(r'[.,;]$').hasMatch(text)) || 
-                       RegExp(r'^(\d+\.?\s*)?(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References|Notes|Footnotes|About the Author|Acknowledgements)', caseSensitive: false).hasMatch(text);
+      // --- 1. Header Detection (Enhanced) ---
+      final isExplicitHeader = RegExp(
+        r'^(\d+\.?\s*)?(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References|Notes|Footnotes|About the Author|Acknowledgements)',
+        caseSensitive: false,
+      ).hasMatch(plainText);
+      
+      // Header heuristic: short, larger font, or extra vertical space
+      bool isHeader = isExplicitHeader || (richLine.fontSize > 13.0 && plainText.length < 100);
+      
+      // Check vertical space before
+      if (i > 0 && !isHeader) {
+        final prev = lines[i-1];
+        if (richLine.pageIndex == prev.pageIndex) {
+          final gap = richLine.bounds.top - prev.bounds.top;
+          if (gap > standardLineHeight * 1.8 && plainText.length < 80 && !RegExp(r'[.,;]$').hasMatch(plainText)) {
+            isHeader = true;
+          }
+        }
+      }
 
       if (isHeader) {
-        if (inParagraph) {
-          buffer.writeln('</p>');
-          inParagraph = false;
-        }
-        buffer.writeln('<h2>$text</h2>');
-      } else {
-        if (!inParagraph) {
-          buffer.write('<p>');
-          inParagraph = true;
-        }
-        buffer.write('$text ');
+        if (inParagraph) buffer.writeln('</p>');
+        if (inBlockquote) buffer.writeln('</blockquote>');
+        inParagraph = false;
+        inBlockquote = false;
+        buffer.writeln('<h2>${_toRichHtml(richLine)}</h2>');
+        continue;
+      }
 
-        // End of paragraph heuristic: ends with period and next line is likely a header or long gap
-        if (text.endsWith('.') && i < lines.length - 1) {
-          final nextLine = lines[i+1].trim();
-          final nextIsHeader = (nextLine.length < 100 && !RegExp(r'[.,;]$').hasMatch(nextLine));
-          if (nextIsHeader) {
+      // --- 2. Blockquote / Indentation Detection ---
+      final isIndented = richLine.bounds.left > standardMargin + 20;
+      if (isIndented && !inBlockquote) {
+        if (inParagraph) buffer.writeln('</p>');
+        inParagraph = false;
+        buffer.writeln('<blockquote>');
+        inBlockquote = true;
+      } else if (!isIndented && inBlockquote) {
+        buffer.writeln('</blockquote>');
+        inBlockquote = false;
+      }
+
+      // --- 3. Paragraph Detection (Vertical Spacing) ---
+      bool startNewParagraph = false;
+      if (i > 0) {
+        final prev = lines[i-1];
+        if (richLine.pageIndex != prev.pageIndex) {
+          // New page usually implies continuation unless there's a big gap or header
+          // But let's assume continuation for now unless logic dictates otherwise
+        } else {
+          final gap = richLine.bounds.top - prev.bounds.top;
+          if (gap > standardLineHeight * 1.4) {
+            startNewParagraph = true;
+          }
+        }
+      }
+
+      if (startNewParagraph && inParagraph) {
+        buffer.writeln('</p>');
+        inParagraph = false;
+      }
+
+      if (!inParagraph) {
+        buffer.write('<p>');
+        inParagraph = true;
+      }
+
+      buffer.write('${_toRichHtml(richLine)} ');
+
+      // End paragraph heuristic
+      if (plainText.endsWith('.') && i < lines.length - 1) {
+        final next = lines[i+1];
+        if (next.pageIndex == richLine.pageIndex) {
+          final gap = next.bounds.top - richLine.bounds.top;
+          if (gap > standardLineHeight * 1.3) {
             buffer.writeln('</p>');
             inParagraph = false;
           }
@@ -366,7 +496,33 @@ class PdfParserService {
     }
 
     if (inParagraph) buffer.writeln('</p>');
+    if (inBlockquote) buffer.writeln('</blockquote>');
     return buffer.toString();
+  }
+
+  String _toRichHtml(_RichLine line) {
+    final buffer = StringBuffer();
+    for (final word in line.words) {
+      String span = word.text;
+      
+      // Superscript detection
+      // Heuristic: smaller font AND baseline is higher than the line's center
+      // We can use bounds.top for a quick check
+      final isSuperscript = word.fontSize < line.fontSize * 0.9 && word.bounds.top < line.bounds.top + (line.bounds.height * 0.2);
+      
+      if (word.isItalic) span = '<i>$span</i>';
+      if (word.isBold) span = '<b>$span</b>';
+      if (isSuperscript) span = '<sup>$span</sup>';
+      
+      if (word.uri != null) {
+        final isMetadataLink = word.uri!.contains('doi.org') || word.uri!.contains('orcid.org');
+        if (!isMetadataLink) {
+          span = '<a href="${word.uri}">$span</a>';
+        }
+      }
+      buffer.write('$span ');
+    }
+    return buffer.toString().trimRight();
   }
 
   String _processReferenceLines(List<String> lines) {
@@ -390,4 +546,92 @@ class PdfParserService {
     }
     return buffer.toString();
   }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  String? _findLinkForBounds(Rect wordBounds, List<_LinkAnnotation> links) {
+    const double tolerance = 2.0;
+    for (final link in links) {
+      final lb = link.bounds;
+      final overlapsH = wordBounds.left < lb.right + tolerance &&
+          wordBounds.right > lb.left - tolerance;
+      final overlapsV = wordBounds.top < lb.bottom + tolerance &&
+          wordBounds.bottom > lb.top - tolerance;
+      if (overlapsH && overlapsV) return link.uri;
+    }
+    return null;
+  }
+
+  String _formatMonYYYY(DateTime date) {
+    final months = [
+      'Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June',
+      'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.',
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
+  String _clean(String text) {
+    if (text.isEmpty) return '';
+    return text
+        .trim()
+        .replaceAll('\uFFFD', "'")
+        .replaceAll(RegExp(r'[\u2018\u2019\u201A\u201B\u2032\u2035\u02BC\u02BD\u02C8\u02CA\u02CB\u00B4\u0060\u0090\u0091\u0092]'), "'")
+        .replaceAll(RegExp(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u0093\u0094\u00AB\u00BB]'), '"')
+        .replaceAll(RegExp(r'[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]'), '-')
+        .replaceAll('\uFB01', 'fi')
+        .replaceAll('\uFB02', 'fl')
+        .replaceAll(RegExp(r'[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]'), ' ')
+        .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Internal Geometric Models
+// ---------------------------------------------------------------------------
+
+class _RichWord {
+  final String text;
+  final Rect bounds;
+  final double fontSize;
+  final List<PdfFontStyle> fontStyle;
+  final int pageIndex;
+  final String? uri;
+
+  _RichWord({
+    required this.text,
+    required this.bounds,
+    required this.fontSize,
+    required this.fontStyle,
+    required this.pageIndex,
+    this.uri,
+  });
+
+  bool get isBold => fontStyle.contains(PdfFontStyle.bold);
+  bool get isItalic => fontStyle.contains(PdfFontStyle.italic);
+}
+
+class _RichLine {
+  final List<_RichWord> words;
+  final String text;
+  final Rect bounds;
+  final double fontSize;
+
+  _RichLine({
+    required this.words,
+    required this.text,
+    required this.bounds,
+    required this.fontSize,
+  });
+
+  String get plainText => text;
+  int get pageIndex => words.first.pageIndex;
+}
+
+class _LinkAnnotation {
+  final Rect bounds;
+  final String uri;
+  const _LinkAnnotation(this.bounds, this.uri);
 }

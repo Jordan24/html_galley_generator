@@ -300,10 +300,10 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
 
         _volumeCtrl.text = metadata.volume;
         _issueCtrl.text = metadata.issue;
-        _articleIdCtrl.text = metadata.articleId;
-        _submissionIdCtrl.text = metadata.submissionId;
         _issueViewIdCtrl.text = metadata.issueViewId;
         _pdfGalleyIdCtrl.text = metadata.pdfGalleyId;
+        _articleIdCtrl.text = metadata.articleId;
+        _submissionIdCtrl.text = metadata.submissionId;
         _publishedDateCtrl.text = metadata.publishedDate;
         _issuedDateCtrl.text = metadata.issuedDate;
         _publishedDateMonYYYYCtrl.text = metadata.publishedDateMonYYYY;
