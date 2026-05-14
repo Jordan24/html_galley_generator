@@ -94,8 +94,8 @@ class HtmlGeneratorService {
       '{articleAbstract}': _clean(metadata.articleAbstract),
       '{dcSubjectTags}': _generateKeywordTags(metadata.keywords, 'DC.Subject'),
       '{citationKeywordsTags}': _generateKeywordTags(metadata.keywords, 'citation_keywords'),
-      '{articleBody}': metadata.articleBody,
-      '{authorBio}': _processAuthorBio(metadata),
+      '{articleBody}': _cleanRedundantTags(metadata.articleBody),
+      '{authorBio}': _cleanRedundantTags(_processAuthorBio(metadata)),
     };
 
     String result = text;
@@ -146,5 +146,28 @@ class HtmlGeneratorService {
         .replaceAll(RegExp(r'[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]'), ' ')
         .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
         .replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  String _cleanRedundantTags(String html) {
+    if (html.isEmpty) return html;
+    
+    String result = html;
+    
+    // Tags to collapse if they are adjacent and identical
+    final tags = ['i', 'em', 'b', 'strong', 'sup', 'sub', 'span'];
+    
+    for (final tag in tags) {
+      // Matches </tag> followed by optional whitespace/newlines then <tag>
+      final regex = RegExp('</$tag>(\\s*)<$tag>', caseSensitive: false, dotAll: true);
+      
+      // Keep replacing until no more merges are possible (handles triplets etc)
+      int previousLength;
+      do {
+        previousLength = result.length;
+        result = result.replaceAllMapped(regex, (match) => match.group(1) ?? '');
+      } while (result.length != previousLength);
+    }
+    
+    return result;
   }
 }

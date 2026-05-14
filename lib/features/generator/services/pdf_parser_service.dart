@@ -22,8 +22,8 @@ class PdfParserService {
     String authorAffiliation = '';
     String authorBio = '';
     List<_RichLine> bodyRichLines = [];
-    List<String> referenceLines = [];
-    List<String> footnoteLines = [];
+    List<_RichLine> referenceLines = [];
+    List<_RichLine> footnoteLines = [];
 
     // 1. Fallback to PDF Metadata
     final info = document.documentInformation;
@@ -217,9 +217,9 @@ class PdfParserService {
         }
         keywords += text;
       } else if (isReferences) {
-        referenceLines.add(text);
+        referenceLines.add(richLine);
       } else if (isFootnotes) {
-        footnoteLines.add(text);
+        footnoteLines.add(richLine);
       } else if (title.isNotEmpty && authorFullName.isNotEmpty && fontSize >= 8.5 && fontSize <= 13.5) {
         if (text.length > 3) {
           bodyRichLines.add(richLine);
@@ -443,30 +443,81 @@ class PdfParserService {
         continue;
       }
 
+      // --- 1b. Figure/Table Detection ---
+      final isFigureCaption = RegExp(r'^(Figure|Fig\.?)\s+\d+', caseSensitive: false).hasMatch(plainText);
+      final isTableCaption = RegExp(r'^Table\s+\d+', caseSensitive: false).hasMatch(plainText);
+
+      if (isFigureCaption) {
+        if (inParagraph) buffer.writeln('</p>');
+        if (inBlockquote) buffer.writeln('</blockquote>');
+        inParagraph = false;
+        inBlockquote = false;
+        
+        final figureMatch = RegExp(r'^(Figure|Fig\.?)\s+\d+', caseSensitive: false).firstMatch(plainText);
+        final figureLabel = figureMatch?.group(0) ?? "Figure";
+        final figureId = figureLabel.replaceAll(RegExp(r'[^0-9]'), '');
+        
+        buffer.writeln('<figure>');
+        buffer.writeln('\t\t<img width="575" src="/sites/g/files/REPLACE_ME/f/Figure_$figureId.jpg" alt="${_clean(plainText)}">');
+        buffer.writeln('\t\t<figcaption>');
+        buffer.writeln('\t\t\t<p style="font-size: 0.75em;">${_toRichHtml(richLine)}</p>');
+        buffer.writeln('\t\t</figcaption>');
+        buffer.writeln('</figure>');
+        continue;
+      } else if (isTableCaption) {
+        if (inParagraph) buffer.writeln('</p>');
+        if (inBlockquote) buffer.writeln('</blockquote>');
+        inParagraph = false;
+        inBlockquote = false;
+
+        final tableMatch = RegExp(r'^Table\s+\d+', caseSensitive: false).firstMatch(plainText);
+        final tableLabel = tableMatch?.group(0) ?? "Table";
+
+        buffer.writeln('<div class="table-wrapper">');
+        buffer.writeln('\t\t<p style="font-size: 0.75em;">${_toRichHtml(richLine)}</p>');
+        buffer.writeln('\t\t<table border="1" style="width: 100%; border-collapse: collapse; margin-top: 10px;">');
+        buffer.writeln('\t\t\t<tr><td style="padding: 20px; text-align: center; border: 1px dashed #28a745;">[ REPLACE WITH $tableLabel CONTENT ]</td></tr>');
+        buffer.writeln('\t\t</table>');
+        buffer.writeln('</div>');
+        continue;
+      }
+
       // --- 2. Blockquote / Indentation Detection ---
-      final isIndented = richLine.bounds.left > standardMargin + 20;
-      if (isIndented && !inBlockquote) {
+      // We'll treat significant indentation as a blockquote, 
+      // but minor indentation as just a new paragraph start.
+      final isIndented = richLine.bounds.left > standardMargin + 5;
+      final isBlockquote = richLine.bounds.left > standardMargin + 25;
+
+      if (isBlockquote && !inBlockquote) {
         if (inParagraph) buffer.writeln('</p>');
         inParagraph = false;
         buffer.writeln('<blockquote>');
         inBlockquote = true;
-      } else if (!isIndented && inBlockquote) {
+      } else if (!isBlockquote && inBlockquote) {
         buffer.writeln('</blockquote>');
         inBlockquote = false;
       }
 
-      // --- 3. Paragraph Detection (Vertical Spacing) ---
+      // --- 3. Paragraph Detection (Vertical Spacing & Indentation) ---
       bool startNewParagraph = false;
       if (i > 0) {
-        final prev = lines[i-1];
-        if (richLine.pageIndex != prev.pageIndex) {
-          // New page usually implies continuation unless there's a big gap or header
-          // But let's assume continuation for now unless logic dictates otherwise
-        } else {
+        final prev = lines[i - 1];
+        if (richLine.pageIndex == prev.pageIndex) {
           final gap = richLine.bounds.top - prev.bounds.top;
-          if (gap > standardLineHeight * 1.4) {
+          final prevEndsWithPeriod = prev.plainText.trim().endsWith('.');
+          
+          // Heuristic: If previous line ends with period, we are more sensitive to gaps
+          final threshold = prevEndsWithPeriod ? 1.15 : 1.3;
+          
+          if (gap > standardLineHeight * threshold) {
+            startNewParagraph = true;
+          } else if (isIndented && !isBlockquote && gap > standardLineHeight * 0.8) {
+            // Indentation usually marks a new paragraph even with normal spacing
             startNewParagraph = true;
           }
+        } else {
+          // New page: Check if the first line is indented or the previous page ended with a period
+          if (isIndented) startNewParagraph = true;
         }
       }
 
@@ -484,10 +535,10 @@ class PdfParserService {
 
       // End paragraph heuristic
       if (plainText.endsWith('.') && i < lines.length - 1) {
-        final next = lines[i+1];
+        final next = lines[i + 1];
         if (next.pageIndex == richLine.pageIndex) {
           final gap = next.bounds.top - richLine.bounds.top;
-          if (gap > standardLineHeight * 1.3) {
+          if (gap > standardLineHeight * 1.25) {
             buffer.writeln('</p>');
             inParagraph = false;
           }
@@ -501,48 +552,93 @@ class PdfParserService {
   }
 
   String _toRichHtml(_RichLine line) {
+    if (line.words.isEmpty) return '';
     final buffer = StringBuffer();
-    for (final word in line.words) {
-      String span = word.text;
+    
+    List<_RichWord> currentGroup = [];
+
+    void flushGroup() {
+      if (currentGroup.isEmpty) return;
+      
+      final first = currentGroup[0];
+      String text = currentGroup.map((w) => w.text).join(' ');
+      if (text.trim().isEmpty) {
+        currentGroup = [];
+        return;
+      }
       
       // Superscript detection
       // Heuristic: smaller font AND baseline is higher than the line's center
-      // We can use bounds.top for a quick check
-      final isSuperscript = word.fontSize < line.fontSize * 0.9 && word.bounds.top < line.bounds.top + (line.bounds.height * 0.2);
+      final isSuperscript = first.fontSize < line.fontSize * 0.9 && 
+                           first.bounds.top < line.bounds.top + (line.bounds.height * 0.2);
       
-      if (word.isItalic) span = '<i>$span</i>';
-      if (word.isBold) span = '<b>$span</b>';
+      String span = text;
+      
+      // Apply styles in consistent order
+      if (first.isItalic) span = '<i>$span</i>';
+      if (first.isBold) span = '<b>$span</b>';
       if (isSuperscript) span = '<sup>$span</sup>';
       
-      if (word.uri != null) {
-        final isMetadataLink = word.uri!.contains('doi.org') || word.uri!.contains('orcid.org');
+      if (first.uri != null) {
+        final isMetadataLink = first.uri!.contains('doi.org') || first.uri!.contains('orcid.org');
         if (!isMetadataLink) {
-          span = '<a href="${word.uri}">$span</a>';
+          span = '<a href="${first.uri}">$span</a>';
         }
       }
+      
       buffer.write('$span ');
+      currentGroup = [];
     }
+
+    for (final word in line.words) {
+      final isSuperscript = word.fontSize < line.fontSize * 0.9 && 
+                           word.bounds.top < line.bounds.top + (line.bounds.height * 0.2);
+      
+      if (currentGroup.isEmpty) {
+        currentGroup.add(word);
+      } else {
+        final prev = currentGroup.last;
+        final prevIsSuperscript = prev.fontSize < line.fontSize * 0.9 && 
+                                 prev.bounds.top < line.bounds.top + (line.bounds.height * 0.2);
+        
+        bool sameStyle = prev.isBold == word.isBold && 
+                         prev.isItalic == word.isItalic && 
+                         prevIsSuperscript == isSuperscript && 
+                         prev.uri == word.uri;
+        
+        if (sameStyle) {
+          currentGroup.add(word);
+        } else {
+          flushGroup();
+          currentGroup.add(word);
+        }
+      }
+    }
+    flushGroup();
+    
     return buffer.toString().trimRight();
   }
 
-  String _processReferenceLines(List<String> lines) {
+  String _processReferenceLines(List<_RichLine> lines) {
     if (lines.isEmpty) return '';
     final buffer = StringBuffer();
     buffer.writeln('<h2>Bibliography</h2>');
     for (final line in lines) {
-      if (line.trim().isEmpty) continue;
-      buffer.writeln('<div class="csl-entry">${line.trim()}</div>');
+      final html = _toRichHtml(line);
+      if (html.isEmpty) continue;
+      buffer.writeln('<div class="csl-entry">$html</div>');
     }
     return buffer.toString();
   }
 
-  String _processFootnoteLines(List<String> lines) {
+  String _processFootnoteLines(List<_RichLine> lines) {
     if (lines.isEmpty) return '';
     final buffer = StringBuffer();
     buffer.writeln('<h2>Notes</h2>');
     for (final line in lines) {
-      if (line.trim().isEmpty) continue;
-      buffer.writeln('<p>${line.trim()}</p>');
+      final html = _toRichHtml(line);
+      if (html.isEmpty) continue;
+      buffer.writeln('<p>$html</p>');
     }
     return buffer.toString();
   }
