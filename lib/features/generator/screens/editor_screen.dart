@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart' as vsc;
@@ -199,60 +200,92 @@ class _EditorScreenState extends State<EditorScreen> {
                           ],
                         ),
                         padding: const EdgeInsets.all(60),
-                        child: QuillEditor.basic(
-                          controller: _controller,
-                          config: QuillEditorConfig(
-                            padding: EdgeInsets.zero,
-                            autoFocus: true,
-                            expands: false,
-                            scrollable: false,
-                            customStyles: DefaultStyles(
-                              h1: DefaultTextBlockStyle(
-                                const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1D2B3E),
-                                  height: 1.2,
+                        child: CallbackShortcuts(
+                          bindings: {
+                            // Bold: Ctrl+B and Cmd+B
+                            const SingleActivator(LogicalKeyboardKey.keyB, control: true): () {
+                              _controller.formatSelection(Attribute.bold);
+                            },
+                            const SingleActivator(LogicalKeyboardKey.keyB, meta: true): () {
+                              _controller.formatSelection(Attribute.bold);
+                            },
+                            // Italic: Ctrl+I and Cmd+I
+                            const SingleActivator(LogicalKeyboardKey.keyI, control: true): () {
+                              _controller.formatSelection(Attribute.italic);
+                            },
+                            const SingleActivator(LogicalKeyboardKey.keyI, meta: true): () {
+                              _controller.formatSelection(Attribute.italic);
+                            },
+                            // Underline: Ctrl+U and Cmd+U
+                            const SingleActivator(LogicalKeyboardKey.keyU, control: true): () {
+                              _controller.formatSelection(Attribute.underline);
+                            },
+                            const SingleActivator(LogicalKeyboardKey.keyU, meta: true): () {
+                              _controller.formatSelection(Attribute.underline);
+                            },
+                            // Strikethrough: Ctrl+Shift+X and Cmd+Shift+X
+                            const SingleActivator(LogicalKeyboardKey.keyX, control: true, shift: true): () {
+                              _controller.formatSelection(Attribute.strikeThrough);
+                            },
+                            const SingleActivator(LogicalKeyboardKey.keyX, meta: true, shift: true): () {
+                              _controller.formatSelection(Attribute.strikeThrough);
+                            },
+                          },
+                          child: QuillEditor.basic(
+                            controller: _controller,
+                            config: QuillEditorConfig(
+                              padding: EdgeInsets.zero,
+                              autoFocus: true,
+                              expands: false,
+                              scrollable: false,
+                              customStyles: DefaultStyles(
+                                h1: DefaultTextBlockStyle(
+                                  const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1D2B3E),
+                                    height: 1.2,
+                                  ),
+                                  const HorizontalSpacing(0, 0),
+                                  const VerticalSpacing(24, 16),
+                                  const VerticalSpacing(0, 0),
+                                  null,
                                 ),
-                                const HorizontalSpacing(0, 0),
-                                const VerticalSpacing(24, 16),
-                                const VerticalSpacing(0, 0),
-                                null,
-                              ),
-                              h2: DefaultTextBlockStyle(
-                                const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1D2B3E),
-                                  height: 1.2,
+                                h2: DefaultTextBlockStyle(
+                                  const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1D2B3E),
+                                    height: 1.2,
+                                  ),
+                                  const HorizontalSpacing(0, 0),
+                                  const VerticalSpacing(20, 12),
+                                  const VerticalSpacing(0, 0),
+                                  null,
                                 ),
-                                const HorizontalSpacing(0, 0),
-                                const VerticalSpacing(20, 12),
-                                const VerticalSpacing(0, 0),
-                                null,
-                              ),
-                              h3: DefaultTextBlockStyle(
-                                const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1D2B3E),
-                                  height: 1.2,
+                                h3: DefaultTextBlockStyle(
+                                  const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1D2B3E),
+                                    height: 1.2,
+                                  ),
+                                  const HorizontalSpacing(0, 0),
+                                  const VerticalSpacing(16, 8),
+                                  const VerticalSpacing(0, 0),
+                                  null,
                                 ),
-                                const HorizontalSpacing(0, 0),
-                                const VerticalSpacing(16, 8),
-                                const VerticalSpacing(0, 0),
-                                null,
-                              ),
-                              paragraph: DefaultTextBlockStyle(
-                                const TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xFF334155),
-                                  height: 1.6,
+                                paragraph: DefaultTextBlockStyle(
+                                  const TextStyle(
+                                    fontSize: 16,
+                                    color: Color(0xFF334155),
+                                    height: 1.6,
+                                  ),
+                                  const HorizontalSpacing(0, 0),
+                                  const VerticalSpacing(8, 8),
+                                  const VerticalSpacing(0, 0),
+                                  null,
                                 ),
-                                const HorizontalSpacing(0, 0),
-                                const VerticalSpacing(8, 8),
-                                const VerticalSpacing(0, 0),
-                                null,
                               ),
                             ),
                           ),

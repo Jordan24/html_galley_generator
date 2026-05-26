@@ -9,6 +9,7 @@ import '../models/journal_settings.dart';
 import '../services/html_generator_service.dart';
 import '../services/ojs_scraper_service.dart';
 import '../services/pdf_parser_service.dart';
+import '../services/docx_parser_service.dart';
 import '../widgets/article_metadata_form.dart';
 import '../widgets/author_metadata_form.dart';
 import '../widgets/drop_zone.dart';
@@ -29,6 +30,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   // ... (dependencies and state remain the same) ...
   final _settingsRepo = SettingsRepository();
   final _pdfParser = PdfParserService();
+  final _docxParser = DocxParserService();
   final _htmlGenerator = HtmlGeneratorService();
   final _ojsScraper = OjsScraperService();
 
@@ -284,7 +286,15 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   Future<void> _processFile(File file) async {
     setState(() => _selectedPdf = file);
     try {
-      final metadata = await _pdfParser.parse(file);
+      ArticleMetadata metadata;
+      if (file.path.toLowerCase().endsWith('.pdf')) {
+        metadata = await _pdfParser.parse(file);
+      } else if (file.path.toLowerCase().endsWith('.docx')) {
+        metadata = await _docxParser.parse(file);
+      } else {
+        throw Exception('Unsupported file format');
+      }
+      
       setState(() {
         _titleCtrl.text = metadata.title.replaceAll(
           RegExp(r'[^\x00-\x7F\u00C0-\u017F\u0180-\u024F]'),
@@ -315,9 +325,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _articleBodyCtrl.text = metadata.articleBody;
         _articleAbstract = metadata.articleAbstract;
       });
-      _showSnackBar('PDF parsed successfully!');
+      _showSnackBar('Document parsed successfully!');
     } catch (e) {
-      _showSnackBar('Failed to parse PDF: $e');
+      _showSnackBar('Failed to parse document: $e');
     }
   }
 

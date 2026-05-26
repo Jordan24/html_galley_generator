@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 
-/// A drag-and-drop zone that accepts PDF files.
+/// A drag-and-drop zone that accepts PDF and DOCX files.
 ///
-/// Calls [onFilePicked] when a valid PDF is dropped onto the widget.
+/// Calls [onFilePicked] when a valid PDF or DOCX is dropped onto the widget.
 class DropZone extends StatefulWidget {
   const DropZone({
     super.key,
@@ -12,10 +12,10 @@ class DropZone extends StatefulWidget {
     required this.onFilePicked,
   });
 
-  /// The currently loaded PDF file, or null if none has been loaded.
+  /// The currently loaded PDF or DOCX file, or null if none has been loaded.
   final File? selectedPdf;
 
-  /// Invoked with the dropped [File] when a PDF is dropped.
+  /// Invoked with the dropped [File] when a PDF or DOCX is dropped.
   final ValueChanged<File> onFilePicked;
 
   @override
@@ -34,7 +34,8 @@ class _DropZoneState extends State<DropZone> {
         setState(() => _isHovering = false);
         if (details.files.isNotEmpty) {
           final file = File(details.files.first.path);
-          if (file.path.toLowerCase().endsWith('.pdf')) {
+          final lowerPath = file.path.toLowerCase();
+          if (lowerPath.endsWith('.pdf') || lowerPath.endsWith('.docx')) {
             widget.onFilePicked(file);
           }
         }
@@ -66,7 +67,7 @@ class _DropZoneState extends State<DropZone> {
             Text(
               widget.selectedPdf != null
                   ? 'Loaded: ${widget.selectedPdf!.path.split(Platform.pathSeparator).last}'
-                  : 'Drag and drop PDF to start',
+                  : 'Drag and drop PDF or DOCX to start',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.blueGrey[700],
