@@ -221,6 +221,9 @@ class PdfParserService {
       } else if (isFootnotes) {
         footnoteLines.add(richLine);
       } else if (title.isNotEmpty && authorFullName.isNotEmpty && fontSize >= 8.5 && fontSize <= 13.5) {
+        if (_clean(text) == _clean(authorFullName)) {
+          continue;
+        }
         if (text.length > 3) {
           bodyRichLines.add(richLine);
         }

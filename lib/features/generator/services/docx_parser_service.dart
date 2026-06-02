@@ -241,6 +241,12 @@ class DocxParserService {
              // Skip writing the main title into the body
              continue;
          }
+         final pStyle = p.findAllElements('w:pStyle').firstOrNull;
+         final val = pStyle?.getAttribute('w:val');
+         if (val == 'AuthorByline' || (authorFullName.isNotEmpty && text == authorFullName)) {
+             // Skip writing the author name into the body
+             continue;
+         }
          
          String htmlContent = _processSingleParagraph(p, rels, imageBase64Map, footnotesMap);
          if (htmlContent.isNotEmpty) {
