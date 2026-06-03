@@ -46,7 +46,9 @@ class _EditorScreenState extends State<EditorScreen> {
         widget.metadata,
         widget.settings,
       );
-      final delta = HtmlToDelta().convert(html);
+      final delta = HtmlToDelta(
+        shouldInsertANewLine: (localName) => localName == 'p',
+      ).convert(html);
       setState(() {
         _controller = QuillController(
           document: Document.fromDelta(delta),

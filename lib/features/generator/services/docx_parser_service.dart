@@ -521,15 +521,7 @@ class DocxParserService {
   }
 
   String _preserveLineBreaks(String text) {
-    final trimmed = text.trim();
-    if (trimmed.startsWith('-') || 
-        trimmed.startsWith('*') || 
-        trimmed.startsWith('+') || 
-        trimmed.startsWith('#') ||
-        RegExp(r'^\d+\.').hasMatch(trimmed)) {
-      return text;
-    }
-    return text.replaceAll('\n', '<br>\n');
+    return text;
   }
 
   String _formatMonYYYY(DateTime date) {
