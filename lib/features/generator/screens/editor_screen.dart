@@ -71,7 +71,22 @@ class _EditorScreenState extends State<EditorScreen> {
       final deltaJson = _controller.document.toDelta().toJson();
       final converter = vsc.QuillDeltaToHtmlConverter(
         List<Map<String, dynamic>>.from(deltaJson),
-        vsc.ConverterOptions.forEmail(),
+        vsc.ConverterOptions(
+          multiLineParagraph: false,
+          sanitizerOptions: vsc.OpAttributeSanitizerOptions(),
+          converterOptions: vsc.OpConverterOptions(
+            inlineStylesFlag: true,
+            customCssStyles: (op) {
+              if (op.isImage()) {
+                return ['max-width: 100%', 'object-fit: contain'];
+              }
+              if (op.isBlockquote()) {
+                return ['border-left: 4px solid #ccc', 'padding-left: 16px'];
+              }
+              return null;
+            },
+          ),
+        ),
       );
       final editedHtml = converter.convert();
 
