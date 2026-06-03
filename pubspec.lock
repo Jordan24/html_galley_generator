@@ -137,6 +137,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.4.1"
+  docx_to_markdown:
+    dependency: "direct main"
+    description:
+      name: docx_to_markdown
+      sha256: "7926f8c86a84c59a7fb6fc4655bf117c3587d8dff1259038deb9c3888b747417"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.1"
   fake_async:
     dependency: transitive
     description:
@@ -430,7 +438,7 @@ packages:
     source: hosted
     version: "1.3.0"
   markdown:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: markdown
       sha256: ee85086ad7698b42522c6ad42fe195f1b9898e4d974a1af4576c1a3a176cada9

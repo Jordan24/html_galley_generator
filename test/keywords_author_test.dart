@@ -11,6 +11,14 @@ void main() {
     final parser = DocxParserService();
     final metadata = await parser.parse(file);
 
+    expect(metadata.title, 'Archives as Bridges: Connecting Students to Asia’s Histories');
+    expect(metadata.authorFullName, 'Lauren Collins');
+    expect(metadata.authorFirstName, 'Lauren');
+    expect(metadata.authorLastName, 'Collins');
+    expect(metadata.author, 'COLLINS');
+    expect(metadata.authorAffiliation, contains('University of Colorado Boulder'));
+    expect(metadata.authorBio, contains('Assistant Teaching Professor'));
+    expect(metadata.articleAbstract, contains('This article explores the use of university libraries and archives'));
     expect(metadata.keywords, 'Teaching and Learning, Archives, Re-storying, Orphan Images, Libraries, Maps');
     // The body should NOT contain a standalone paragraph with the author's name
     expect(metadata.articleBody, isNot(contains('<p>Lauren Collins</p>')));

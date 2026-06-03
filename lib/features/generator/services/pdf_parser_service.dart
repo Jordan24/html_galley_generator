@@ -13,14 +13,14 @@ class PdfParserService {
 
     String title = '';
     String authorFullName = '';
-    String abstractText = '';
-    String keywords = '';
     String volume = '';
     String issue = '';
     String articleId = '';
     String authorOrcid = '';
     String authorAffiliation = '';
     String authorBio = '';
+    List<_RichLine> abstractRichLines = [];
+    List<_RichLine> keywordsRichLines = [];
     List<_RichLine> bodyRichLines = [];
     List<_RichLine> referenceLines = [];
     List<_RichLine> footnoteLines = [];
@@ -56,9 +56,11 @@ class PdfParserService {
       
       final List<_RichWord> richWords = [];
       for (final word in line.wordCollection) {
+        final cleaned = _clean(word.text);
+        if (cleaned.isEmpty) continue;
         final uri = _findLinkForBounds(word.bounds, pageLinksForPage);
         richWords.add(_RichWord(
-          text: _clean(word.text),
+          text: cleaned,
           bounds: word.bounds,
           fontSize: word.fontSize,
           fontStyle: word.fontStyle,
@@ -164,8 +166,8 @@ class PdfParserService {
         isKeywords = false;
         isReferences = false;
         if (lowerText.startsWith('abstract:')) {
-          final content = text.substring(text.indexOf(':') + 1).trim();
-          if (content.isNotEmpty) abstractText = content;
+          final stripped = _stripPrefix(richLine, RegExp(r'^[\s#*_]*abstract[:\s#*_]*', caseSensitive: false));
+          if (stripped != null) abstractRichLines.add(stripped);
         }
         continue;
       } else if (lowerText == 'keywords' ||
@@ -175,10 +177,8 @@ class PdfParserService {
         isAbstract = false;
         isReferences = false;
         if (lowerText.startsWith('keywords:') || lowerText.startsWith('keywords ')) {
-          final splitIndex = text.indexOf(':');
-          final content =
-              splitIndex != -1 ? text.substring(splitIndex + 1).trim() : text.substring(8).trim();
-          if (content.isNotEmpty) keywords = content;
+          final stripped = _stripPrefix(richLine, RegExp(r'^[\s#*_]*keywords[:\s#*_]*', caseSensitive: false));
+          if (stripped != null) keywordsRichLines.add(stripped);
         }
         continue;
       } else if (lowerText == 'bibliography' || lowerText == 'references') {
@@ -194,28 +194,25 @@ class PdfParserService {
         isReferences = false;
         continue;
       }
-
+ 
       // Stop metadata sections if we hit a likely section header
       if (isAbstract || isKeywords) {
         final isExplicitHeader = RegExp(
           r'^(\d+\.?\s*|[A-Z]\.\s*)?(Introduction|Conclusion|Discussion|Results|Methods|Background|Bibliography|References|Notes|Footnotes|About the Author|Acknowledgements|Works Cited)',
           caseSensitive: false,
         ).hasMatch(text);
-
+ 
         if (isExplicitHeader) {
           isAbstract = false;
           isKeywords = false;
         }
       }
-
+ 
       // --- Section Content ---
       if (isAbstract) {
-        abstractText += ' $text';
+        abstractRichLines.add(richLine);
       } else if (isKeywords) {
-        if (keywords.isNotEmpty && !keywords.trim().endsWith(',')) {
-          keywords += ', ';
-        }
-        keywords += text;
+        keywordsRichLines.add(richLine);
       } else if (isReferences) {
         referenceLines.add(richLine);
       } else if (isFootnotes) {
@@ -311,16 +308,28 @@ class PdfParserService {
 
     document.dispose();
 
-    final consolidatedBody = StringBuffer();
-    if (abstractText.isNotEmpty) {
-      consolidatedBody.writeln('<h2>Abstract</h2>');
-      consolidatedBody
-          .writeln('<p>${abstractText.replaceFirst('Abstract ', '').trim()}</p>');
+    final abstractHtml = _processBodyRichLines(abstractRichLines, standardMargin, standardLineHeight).trim();
+    final keywordsHtml = _processBodyRichLines(keywordsRichLines, standardMargin, standardLineHeight).trim();
+
+    String _cleanHtmlToPlainText(String html) {
+      return html
+          .replaceAll(RegExp(r'<[^>]*>'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim()
+          .replaceAll('\uFFFD', "'");
     }
-    if (keywords.isNotEmpty) {
+
+    final abstractText = _cleanHtmlToPlainText(abstractHtml);
+    final keywords = _cleanHtmlToPlainText(keywordsHtml);
+
+    final consolidatedBody = StringBuffer();
+    if (abstractHtml.isNotEmpty) {
+      consolidatedBody.writeln('<h2>Abstract</h2>');
+      consolidatedBody.writeln(abstractHtml);
+    }
+    if (keywordsHtml.isNotEmpty) {
       consolidatedBody.writeln('<h2>Keywords</h2>');
-      consolidatedBody
-          .writeln('<p>${keywords.replaceFirst('Keywords ', '').trim()}</p>');
+      consolidatedBody.writeln(keywordsHtml);
     }
     consolidatedBody.writeln(_processBodyRichLines(bodyRichLines, standardMargin, standardLineHeight));
     consolidatedBody.writeln(_processReferenceLines(referenceLines));
@@ -564,7 +573,7 @@ class PdfParserService {
       if (currentGroup.isEmpty) return;
       
       final first = currentGroup[0];
-      String text = currentGroup.map((w) => w.text).join(' ');
+      String text = currentGroup.map((w) => w.text).join(' ').replaceAll(' - ', '-');
       if (text.trim().isEmpty) {
         currentGroup = [];
         return;
@@ -575,7 +584,7 @@ class PdfParserService {
       final isSuperscript = first.fontSize < line.fontSize * 0.9 && 
                            first.bounds.top < line.bounds.top + (line.bounds.height * 0.2);
       
-      String span = text;
+      String span = _translateInlineMarkdown(text);
       
       // Apply styles in consistent order
       if (first.isItalic) span = '<i>$span</i>';
@@ -671,6 +680,93 @@ class PdfParserService {
     return '${months[date.month - 1]} ${date.year}';
   }
 
+  _RichLine? _stripPrefix(_RichLine line, RegExp prefixRegex) {
+    final text = line.plainText;
+    final match = prefixRegex.firstMatch(text);
+    if (match == null) return line;
+    
+    final matchedLength = match.group(0)!.length;
+    if (matchedLength >= text.length) return null; // Entire line was the prefix
+    
+    // Find which words to keep
+    int charsCount = 0;
+    final newWords = <_RichWord>[];
+    for (final word in line.words) {
+      charsCount += word.text.length + 1; // plus space
+      if (charsCount > matchedLength) {
+        // If this word contains the boundary, we might need to slice it
+        final wordStartInLine = text.indexOf(word.text);
+        if (wordStartInLine >= 0) {
+          final wordEndInLine = wordStartInLine + word.text.length;
+          if (wordEndInLine <= matchedLength) {
+            // Word is entirely within the prefix, skip it
+            continue;
+          } else if (wordStartInLine < matchedLength) {
+            // Word overlaps the boundary, slice it
+            final slicedText = word.text.substring(matchedLength - wordStartInLine);
+            newWords.add(_RichWord(
+              text: slicedText,
+              bounds: word.bounds,
+              fontSize: word.fontSize,
+              fontStyle: word.fontStyle,
+              pageIndex: word.pageIndex,
+              uri: word.uri,
+            ));
+          } else {
+            // Word is entirely after the prefix, keep it
+            newWords.add(word);
+          }
+        }
+      }
+    }
+    
+    if (newWords.isEmpty) return null;
+    return _RichLine(
+      words: newWords,
+      text: text.substring(matchedLength).trim(),
+      bounds: line.bounds,
+      fontSize: line.fontSize,
+    );
+  }
+
+  String _translateInlineMarkdown(String text) {
+    if (text.isEmpty) return text;
+    String result = text;
+    result = _replacePairs(result, '**', '<b>', '</b>');
+    result = _replacePairs(result, '__', '<b>', '</b>');
+    result = _replacePairs(result, '*', '<i>', '</i>');
+    result = _replacePairs(result, '_', '<i>', '</i>');
+    return result;
+  }
+
+  String _replacePairs(String text, String marker, String openTag, String closeTag) {
+    int index = 0;
+    bool isOpen = false;
+    final buffer = StringBuffer();
+    
+    while (index < text.length) {
+      if (text.startsWith(marker, index)) {
+        if (!isOpen) {
+          buffer.write(openTag);
+          isOpen = true;
+        } else {
+          buffer.write(closeTag);
+          isOpen = false;
+        }
+        index += marker.length;
+      } else {
+        buffer.write(text[index]);
+        index++;
+      }
+    }
+    
+    String result = buffer.toString();
+    if (isOpen) {
+      result += closeTag;
+    }
+    return result;
+  }
+
   String _clean(String text) {
     if (text.isEmpty) return '';
     return text
@@ -683,7 +779,8 @@ class PdfParserService {
         .replaceAll('\uFB02', 'fl')
         .replaceAll(RegExp(r'[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]'), ' ')
         .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
-        .replaceAll(RegExp(r'\s+'), ' ');
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(' - ', '-');
   }
 }
 

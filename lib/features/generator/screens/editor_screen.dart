@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,9 @@ class _EditorScreenState extends State<EditorScreen> {
   final _htmlGenerator = HtmlGeneratorService();
   bool _isSaving = false;
   bool _isLoading = true;
+
+  bool get isLoading => _isLoading;
+  QuillController get controller => _controller;
 
   @override
   void initState() {
@@ -180,7 +184,8 @@ class _EditorScreenState extends State<EditorScreen> {
                 ),
                 const Divider(height: 1),
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: Container(
+                    color: const Color(0xFFF1F5F9),
                     padding: const EdgeInsets.symmetric(
                       vertical: 40,
                       horizontal: 20,
@@ -236,8 +241,11 @@ class _EditorScreenState extends State<EditorScreen> {
                             config: QuillEditorConfig(
                               padding: EdgeInsets.zero,
                               autoFocus: true,
-                              expands: false,
-                              scrollable: false,
+                              expands: true,
+                              scrollable: true,
+                              embedBuilders: [
+                                QuillImageEmbedBuilder(),
+                              ],
                               customStyles: DefaultStyles(
                                 h1: DefaultTextBlockStyle(
                                   const TextStyle(
@@ -297,5 +305,87 @@ class _EditorScreenState extends State<EditorScreen> {
               ],
             ),
     );
+  }
+}
+
+class QuillImageEmbedBuilder extends EmbedBuilder {
+  @override
+  String get key => BlockEmbed.imageType;
+
+  @override
+  Widget build(BuildContext context, EmbedContext embedContext) {
+    final String data = embedContext.node.value.data;
+    
+    Widget imageWidget;
+    if (data.startsWith('data:image/')) {
+      try {
+        final commaIndex = data.indexOf(',');
+        if (commaIndex != -1) {
+          final base64Str = data.substring(commaIndex + 1);
+          final bytes = base64Decode(base64Str.trim());
+          imageWidget = Image.memory(
+            bytes,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(Icons.broken_image, size: 60, color: Colors.grey);
+            },
+          );
+        } else {
+          imageWidget = const Icon(Icons.broken_image, size: 60, color: Colors.grey);
+        }
+      } catch (e) {
+        imageWidget = const Icon(Icons.broken_image, size: 60, color: Colors.grey);
+      }
+    } else if (data.startsWith('http://') || data.startsWith('https://')) {
+      imageWidget = Image.network(
+        data,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(Icons.broken_image, size: 60, color: Colors.grey);
+        },
+      );
+    } else {
+      // Local file or path
+      try {
+        final uri = Uri.parse(data);
+        final file = File(uri.isAbsolute ? uri.toFilePath() : data);
+        if (file.existsSync()) {
+          imageWidget = Image.file(
+            file,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(Icons.broken_image, size: 60, color: Colors.grey);
+            },
+          );
+        } else {
+          imageWidget = const Icon(Icons.broken_image, size: 60, color: Colors.grey);
+        }
+      } catch (_) {
+        imageWidget = const Icon(Icons.broken_image, size: 60, color: Colors.grey);
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(
+            maxWidth: 600,
+            maxHeight: 400,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: imageWidget,
+        ),
+      ),
+    );
+  }
+
+  @override
+  String toPlainText(Embed node) {
+    return '[Image]';
   }
 }

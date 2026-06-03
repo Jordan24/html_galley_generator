@@ -284,6 +284,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   }
 
   Future<void> _processFile(File file) async {
+    print('--- _processFile called with path: ${file.path} ---');
     setState(() => _selectedPdf = file);
     try {
       ArticleMetadata metadata;
@@ -326,7 +327,8 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _articleAbstract = metadata.articleAbstract;
       });
       _showSnackBar('Document parsed successfully!');
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Failed to parse document: $e\n$stack');
       _showSnackBar('Failed to parse document: $e');
     }
   }

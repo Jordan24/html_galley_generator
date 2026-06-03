@@ -49,6 +49,8 @@ dependencies:
   html: ^0.15.6
   archive: ^4.0.9
   xml: ^6.6.1
+  docx_to_markdown: ^0.0.1
+  markdown: ^7.3.0
 
 dev_dependencies:
   flutter_test:

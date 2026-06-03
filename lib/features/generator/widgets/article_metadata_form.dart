@@ -171,11 +171,45 @@ class ArticleMetadataForm extends StatelessWidget {
               controller: keywordsCtrl,
             ),
             const SizedBox(height: 16),
-            LabeledTextField(
-              label: 'Article Body (HTML)',
-              controller: articleBodyCtrl,
-              maxLines: 25,
-            ),
+            if (articleBodyCtrl.text.length > 50000)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Article Body (HTML)',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'HTML content loaded: ${(articleBodyCtrl.text.length / 1024 / 1024).toStringAsFixed(2)} MB.\n'
+                      'Direct HTML editing is disabled in the form for performance. '
+                      'Use the rich text editor to view and edit the content.',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              LabeledTextField(
+                label: 'Article Body (HTML)',
+                controller: articleBodyCtrl,
+                maxLines: 25,
+              ),
           ],
         ),
       ),
