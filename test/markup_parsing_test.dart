@@ -39,6 +39,11 @@ void main() {
       expect(metadata.articleBody, contains('<h2>Introduction</h2>'));
       expect(metadata.articleBody, contains('<p><em>Special thanks'));
       expect(metadata.articleBody, contains('<p>Following the profound impact of Edward Said’s'));
+
+      // Verify figure captions are styled with font-size: 12px;
+      expect(metadata.articleBody, contains('<p style="font-size: 12px;"><strong>Figure 1</strong>'));
+      expect(metadata.articleBody, contains('<p style="font-size: 12px;"><strong>Figure 2</strong>'));
+      expect(metadata.articleBody, contains('<p style="font-size: 12px;">Figure 3.'));
     });
 
     test('PDF parser extracts abstract and keywords with rich styling', () async {

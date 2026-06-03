@@ -8,4 +8,5 @@ void main() async {
   print('Article ID: ${metadata.articleId}');
   print('Author: ${metadata.authorFullName}');
   print('Title: ${metadata.title}');
+  await File('output_body.txt').writeAsString(metadata.articleBody);
 }

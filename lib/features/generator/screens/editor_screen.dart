@@ -49,11 +49,25 @@ class _EditorScreenState extends State<EditorScreen> {
       final delta = HtmlToDelta(
         shouldInsertANewLine: (localName) => localName == 'p',
       ).convert(html);
+      
+      final controller = QuillController(
+        document: Document.fromDelta(delta),
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+      
+      final docText = controller.document.toPlainText();
+      final lines = docText.split('\n');
+      int currentIndex = 0;
+      for (final line in lines) {
+        final trimmed = line.trim();
+        if (RegExp(r'^Fig(ure|s|\.)?\s+\d+', caseSensitive: false).hasMatch(trimmed)) {
+          controller.formatText(currentIndex, line.length, Attribute.clone(Attribute.size, 'small'));
+        }
+        currentIndex += line.length + 1;
+      }
+
       setState(() {
-        _controller = QuillController(
-          document: Document.fromDelta(delta),
-          selection: const TextSelection.collapsed(offset: 0),
-        );
+        _controller = controller;
         _isLoading = false;
       });
     } catch (e) {
@@ -82,6 +96,9 @@ class _EditorScreenState extends State<EditorScreen> {
               }
               if (op.isBlockquote()) {
                 return ['border-left: 4px solid #ccc', 'padding-left: 16px'];
+              }
+              if (op.attributes.size == 'small') {
+                return ['font-size: 12px'];
               }
               return null;
             },
@@ -310,6 +327,10 @@ class _EditorScreenState extends State<EditorScreen> {
                                   const VerticalSpacing(8, 8),
                                   const VerticalSpacing(0, 0),
                                   null,
+                                ),
+                                small: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF475569),
                                 ),
                               ),
                             ),

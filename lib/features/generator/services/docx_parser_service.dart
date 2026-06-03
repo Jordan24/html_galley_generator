@@ -387,8 +387,12 @@ class DocxParserService {
       // Compile paragraph/element to HTML
       final preservedText = _preserveLineBreaks(trimmed);
       final robustP = _convertMarkdownToHtmlRobustly(preservedText);
-      final html = md.markdownToHtml(robustP, extensionSet: md.ExtensionSet.gitHubFlavored).trim();
+      var html = md.markdownToHtml(robustP, extensionSet: md.ExtensionSet.gitHubFlavored).trim();
       if (html.isNotEmpty) {
+        final plain = cleanHtmlToPlainText(html);
+        if (RegExp(r'^Fig(ure|s|\.)?\s+\d+', caseSensitive: false).hasMatch(plain)) {
+          html = html.replaceFirst('<p>', '<p style="font-size: 12px;">');
+        }
         bodyHtmlList.add(processImagesInHtml(html));
       }
     }

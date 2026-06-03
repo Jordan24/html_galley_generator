@@ -472,7 +472,7 @@ class PdfParserService {
         buffer.writeln('<figure>');
         buffer.writeln('\t\t<img width="575" src="/sites/g/files/REPLACE_ME/f/Figure_$figureId.jpg" alt="${_clean(plainText)}">');
         buffer.writeln('\t\t<figcaption>');
-        buffer.writeln('\t\t\t<p style="font-size: 0.75em;">${_toRichHtml(richLine)}</p>');
+        buffer.writeln('\t\t\t<p style="font-size: 12px;">${_toRichHtml(richLine)}</p>');
         buffer.writeln('\t\t</figcaption>');
         buffer.writeln('</figure>');
         continue;
@@ -486,7 +486,7 @@ class PdfParserService {
         final tableLabel = tableMatch?.group(0) ?? "Table";
 
         buffer.writeln('<div class="table-wrapper">');
-        buffer.writeln('\t\t<p style="font-size: 0.75em;">${_toRichHtml(richLine)}</p>');
+        buffer.writeln('\t\t<p style="font-size: 12px;">${_toRichHtml(richLine)}</p>');
         buffer.writeln('\t\t<table border="1" style="width: 100%; border-collapse: collapse; margin-top: 10px;">');
         buffer.writeln('\t\t\t<tr><td style="padding: 20px; text-align: center; border: 1px dashed #28a745;">[ REPLACE WITH $tableLabel CONTENT ]</td></tr>');
         buffer.writeln('\t\t</table>');
