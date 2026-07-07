@@ -14,8 +14,8 @@ class DocxParserService {
 
     // Extract basic metadata: DOI -> articleId, volume, issue from footer/header
     String articleId = '';
-    String volume = '7';
-    String issue = '1';
+    String volume = '';
+    String issue = '';
     for (final zipFile in archive.files) {
       if (zipFile.name.startsWith('word/footer') || zipFile.name.startsWith('word/header')) {
         try {

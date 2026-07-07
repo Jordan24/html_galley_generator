@@ -11,6 +11,8 @@ class OjsScrapeResult {
   final String? publishYear;
   final String? submittedDate;
   final String? modifiedDate;
+  final String? volume;
+  final String? issue;
 
   OjsScrapeResult({
     this.pdfGalleyId,
@@ -22,6 +24,8 @@ class OjsScrapeResult {
     this.publishYear,
     this.submittedDate,
     this.modifiedDate,
+    this.volume,
+    this.issue,
   });
 }
 
@@ -54,6 +58,8 @@ class OjsScraperService {
     String? publishYear;
     String? submittedDate;
     String? modifiedDate;
+    String? volume;
+    String? issue;
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -85,6 +91,10 @@ class OjsScraperService {
             metaDcDateSubmitted = content;
           } else if (name == 'DC.Date.modified') {
             metaDcDateModified = content;
+          } else if (name == 'DC.Source.Volume' || name == 'citation_volume') {
+            volume = content;
+          } else if (name == 'DC.Source.Issue' || name == 'citation_issue') {
+            issue = content;
           }
         }
 
@@ -202,6 +212,8 @@ class OjsScraperService {
       publishYear: publishYear,
       submittedDate: submittedDate,
       modifiedDate: modifiedDate,
+      volume: volume,
+      issue: issue,
     );
   }
 }

@@ -24,6 +24,8 @@ void main() {
         expect(result.publishYear, equals('2026'));
         expect(result.submittedDate, equals('2025-09-26'));
         expect(result.modifiedDate, equals('2026-07-06'));
+        expect(result.volume, equals('8'));
+        expect(result.issue, equals('1'));
       },
     );
 

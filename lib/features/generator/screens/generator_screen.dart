@@ -153,6 +153,11 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     if (mounted) {
       setState(() {
         _isScraping = false;
+        bool isDefaultOrEmpty(String text, String defaultVal) {
+          final trimmed = text.trim();
+          return trimmed.isEmpty || trimmed == defaultVal;
+        }
+
         if (result.pdfGalleyId != null && _pdfGalleyIdCtrl.text.isEmpty) {
           _pdfGalleyIdCtrl.text = result.pdfGalleyId!;
         }
@@ -162,6 +167,12 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         if (result.authorAffiliation != null && _authorAffiliationCtrl.text.isEmpty) {
           _authorAffiliationCtrl.text = result.authorAffiliation!;
         }
+        if (result.volume != null && isDefaultOrEmpty(_volumeCtrl.text, '7')) {
+          _volumeCtrl.text = result.volume!;
+        }
+        if (result.issue != null && isDefaultOrEmpty(_issueCtrl.text, '1')) {
+          _issueCtrl.text = result.issue!;
+        }
         final todayStr = DateTime.now().toIso8601String().split('T').first;
         final todayYear = DateTime.now().year.toString();
         final months = [
@@ -169,11 +180,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
         ];
         final todayMonYYYY = '${months[DateTime.now().month - 1]} ${DateTime.now().year}';
-
-        bool isDefaultOrEmpty(String text, String defaultVal) {
-          final trimmed = text.trim();
-          return trimmed.isEmpty || trimmed == defaultVal;
-        }
 
         if (result.publishedDate != null && isDefaultOrEmpty(_publishedDateCtrl.text, todayStr)) {
           _publishedDateCtrl.text = result.publishedDate!;
