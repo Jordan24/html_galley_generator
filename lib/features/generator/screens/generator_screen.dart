@@ -126,7 +126,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     if (_articleIdCtrl.text.isNotEmpty && 
         _journalBaseUrlCtrl.text.isNotEmpty && 
         _journalPathCtrl.text.isNotEmpty &&
-        (_pdfGalleyIdCtrl.text.isEmpty || _issueViewIdCtrl.text.isEmpty) &&
+        (_pdfGalleyIdCtrl.text.isEmpty || 
+         _issueViewIdCtrl.text.isEmpty || 
+         _authorAffiliationCtrl.text.isEmpty) &&
         !_isScraping) {
       _autoFillScrapedIds();
     }
@@ -156,6 +158,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         }
         if (result.issueViewId != null && _issueViewIdCtrl.text.isEmpty) {
           _issueViewIdCtrl.text = result.issueViewId!;
+        }
+        if (result.authorAffiliation != null && _authorAffiliationCtrl.text.isEmpty) {
+          _authorAffiliationCtrl.text = result.authorAffiliation!;
         }
       });
     }
