@@ -4,6 +4,7 @@ import 'package:html_galley_generator/features/generator/services/docx_parser_se
 import 'package:html_galley_generator/features/generator/services/pdf_parser_service.dart';
 import 'package:html_galley_generator/features/generator/services/html_generator_service.dart';
 import 'package:html_galley_generator/features/generator/models/journal_settings.dart';
+import 'package:html_galley_generator/features/generator/models/article_metadata.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 
 void main() {
@@ -49,5 +50,66 @@ void main() {
     // "\n\t\t\t\t\t\t\t\t" + _cleanRedundantTags(metadata.articleBody) + "\n\t\t\t\t\t\t\t"
     // Which we already tested!
     print('Testing is already covered by testing _cleanRedundantTags and converting it.');
+  });
+
+  test('HtmlGeneratorService.buildFullHtml preserves footnote and citation IDs after editor simulation', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final htmlGenerator = HtmlGeneratorService();
+    
+    // Simulate edited HTML output from Quill editor (which lacks IDs and contains target="_blank")
+    const simulatedEditorContent = '''
+<p>This is a paragraph in the body<sup><a href="#fn1" target="_blank">1</a></sup>.</p>
+<p>Another citation<sup><a href="#fn2">2</a></sup>.</p>
+<h2>Notes</h2>
+<p><sup><a href="#ref1" target="_blank">1</a></sup> Footnote 1 content.</p>
+<p><sup><a href="#ref2">2</a></sup> Footnote 2 content.</p>
+''';
+
+    final metadata = ArticleMetadata(
+      title: 'Test Title',
+      author: 'Test Author',
+      authorFullName: 'Test Author',
+      authorFirstName: 'Test',
+      authorLastName: 'Author',
+      keywords: '',
+      articleAbstract: '',
+      articleBody: simulatedEditorContent,
+      authorOrcid: '',
+      authorAffiliation: '',
+      authorBio: '',
+      volume: '1',
+      issue: '1',
+      articleId: '101',
+      submissionId: '101',
+      issueViewId: '',
+      pdfGalleyId: '',
+      publishedDate: '',
+      issuedDate: '',
+      publishedDateMonYYYY: '',
+      publishYear: '',
+      submittedDate: '',
+      modifiedDate: '',
+      titleMain: 'Test Title',
+    );
+    
+    const settings = JournalSettings(
+      journalBaseUrl: 'https://transnationalasia.rice.edu',
+      journalPath: 'journal',
+      journalName: 'Transnational Asia',
+      journalAbbrev: 'TA',
+      journalIssn: '1234-5678',
+    );
+
+    final fullHtml = await htmlGenerator.buildFullHtml(simulatedEditorContent, metadata, settings);
+
+    // Verify IDs are successfully restored and target="_blank" is stripped for internal links
+    expect(fullHtml, contains('<sup id="ref1"><a href="#fn1">1</a></sup>'));
+    expect(fullHtml, contains('<sup id="ref2"><a href="#fn2">2</a></sup>'));
+    expect(fullHtml, contains('<p id="fn1"><sup><a href="#ref1">1</a></sup>'));
+    expect(fullHtml, contains('<p id="fn2"><sup><a href="#ref2">2</a></sup>'));
+    expect(fullHtml, isNot(contains('href="#fn1" target="_blank"')));
+    expect(fullHtml, isNot(contains('target="_blank" href="#fn1"')));
+    expect(fullHtml, isNot(contains('href="#ref1" target="_blank"')));
+    expect(fullHtml, isNot(contains('target="_blank" href="#ref1"')));
   });
 }

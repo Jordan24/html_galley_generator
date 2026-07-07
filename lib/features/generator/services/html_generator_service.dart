@@ -39,6 +39,62 @@ class HtmlGeneratorService {
   Future<String> buildFullHtml(String articleContent, ArticleMetadata metadata, JournalSettings settings) async {
     String template = await rootBundle.loadString('assets/template.html');
     
+    // Post-process articleContent to restore/ensure proper footnote back-links and ids
+    // 1. Convert any inline footnote citation to the target format: <sup id="ref$id"><a href="#fn$id">$id</a></sup>
+    // This matches both:
+    //   - <sup><a href="#fn1">1</a></sup>
+    //   - <a href="#fn1"><sup>1</sup></a>
+    var processedContent = articleContent.replaceAllMapped(
+      RegExp(r'<sup>\s*<a\s+[^>]*?href="#fn(\d+)"[^>]*?>(\d+)</a>\s*</sup>'),
+      (match) {
+        final id = match.group(1)!;
+        return '<sup id="ref$id"><a href="#fn$id">$id</a></sup>';
+      }
+    );
+    processedContent = processedContent.replaceAllMapped(
+      RegExp(r'<a\s+[^>]*?href="#fn(\d+)"[^>]*?>\s*<sup>\s*(\d+)\s*</sup>\s*</a>'),
+      (match) {
+        final id = match.group(1)!;
+        return '<sup id="ref$id"><a href="#fn$id">$id</a></sup>';
+      }
+    );
+
+    // 2. Convert any footnote paragraph starting link to the target format: <p id="fn$id"><sup><a href="#ref$id">$id</a></sup>
+    // This matches both:
+    //   - <p><sup><a href="#ref1">1</a></sup>
+    //   - <p><a href="#ref1"><sup>1</sup></a>
+    processedContent = processedContent.replaceAllMapped(
+      RegExp(r'<p([^>]*?)>\s*<sup>\s*<a\s+[^>]*?href="#ref(\d+)"([^>]*?)>(\d+)</a>\s*</sup>'),
+      (match) {
+        final pAttrs = match.group(1)!;
+        final id = match.group(2)!;
+        return '<p$pAttrs id="fn$id"><sup><a href="#ref$id">$id</a></sup>';
+      }
+    );
+    processedContent = processedContent.replaceAllMapped(
+      RegExp(r'<p([^>]*?)>\s*<a\s+[^>]*?href="#ref(\d+)"([^>]*?)>\s*<sup>\s*(\d+)\s*</sup>\s*</a>'),
+      (match) {
+        final pAttrs = match.group(1)!;
+        final id = match.group(2)!;
+        return '<p$pAttrs id="fn$id"><sup><a href="#ref$id">$id</a></sup>';
+      }
+    );
+
+    // 3. Remove target="_blank" from any other internal links starting with "#" to stay in same page
+    processedContent = processedContent.replaceAllMapped(
+      RegExp(r'<a\s+([^>]*?)href="#([^"]+)"([^>]*?)>'),
+      (match) {
+        var before = match.group(1)!;
+        var href = match.group(2)!;
+        var after = match.group(3)!;
+        before = before.replaceAll('target="_blank"', '').replaceAll(RegExp(r'\s+'), ' ').trim();
+        after = after.replaceAll('target="_blank"', '').replaceAll(RegExp(r'\s+'), ' ').trim();
+        final spaceBefore = before.isNotEmpty ? ' $before' : '';
+        final spaceAfter = after.isNotEmpty ? ' $after' : '';
+        return '<a$spaceBefore href="#$href"$spaceAfter>';
+      }
+    );
+
     // Replace only the inner content of the article body block with a placeholder
     final resultTemplate = template.replaceFirstMapped(
       RegExp(r'(<div class="article-details-block article-details-abstract">\s*<div>)(.*?)(</div>)', dotAll: true),
@@ -46,7 +102,7 @@ class HtmlGeneratorService {
     );
 
     String result = _applyReplacements(resultTemplate, metadata, settings);
-    return result.replaceFirst('{articleContent}', articleContent);
+    return result.replaceFirst('{articleContent}', processedContent);
   }
 
   String _applyReplacements(String text, ArticleMetadata metadata, JournalSettings settings) {

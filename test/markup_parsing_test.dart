@@ -24,12 +24,10 @@ void main() {
       expect(metadata.articleBody, contains('<h2>Abstract</h2>'));
       expect(metadata.articleBody, contains('<h2>Keywords</h2>'));
       
-      // Verify robust bold translation (including overlapping/mismatched markers)
-      expect(metadata.articleBody, contains('<strong>Map Curator</strong>'));
-      expect(metadata.articleBody, contains('<strong>, Map Library Program Manager</strong>'));
-      
-      // Verify italic translation
+      // Verify italic translation and ensure it is not incorrectly bolded
       expect(metadata.articleBody, contains('<em>Special thanks to CU Boulder Library Instructor'));
+      expect(metadata.articleBody, contains('Map Curator Naomi Heiser, Map Library Program Manager Ilene Raynes'));
+      expect(metadata.articleBody, isNot(contains('<strong>Map Curator</strong>')));
 
       // Verify no raw asterisks in the body text (excluding template required field mark if any, but this is article body)
       expect(metadata.articleBody, isNot(contains('Map Curator**')));
@@ -41,9 +39,13 @@ void main() {
       expect(metadata.articleBody, contains('<p>Following the profound impact of Edward Said’s'));
 
       // Verify figure captions are styled with font-size: 12px;
-      expect(metadata.articleBody, contains('<p style="font-size: 12px;"><strong>Figure 1</strong>'));
-      expect(metadata.articleBody, contains('<p style="font-size: 12px;"><strong>Figure 2</strong>'));
+      expect(metadata.articleBody, contains('<p style="font-size: 12px;"><strong>Figure 1'));
+      expect(metadata.articleBody, contains('<p style="font-size: 12px;"><strong>Figure 2'));
       expect(metadata.articleBody, contains('<p style="font-size: 12px;">Figure 3.'));
+
+      // Verify footnote formatting and back-links in DOCX
+      expect(metadata.articleBody, contains('<sup id="ref1"><a href="#fn1">1</a></sup>'));
+      expect(metadata.articleBody, contains('<p id="fn1"><sup><a href="#ref1">1</a></sup> It is important to note that, as of summer 2025'));
     });
 
     test('PDF parser extracts abstract and keywords with rich styling', () async {

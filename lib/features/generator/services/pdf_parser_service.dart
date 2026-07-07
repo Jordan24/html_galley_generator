@@ -22,7 +22,6 @@ class PdfParserService {
     List<_RichLine> abstractRichLines = [];
     List<_RichLine> keywordsRichLines = [];
     List<_RichLine> bodyRichLines = [];
-    List<_RichLine> referenceLines = [];
     List<_RichLine> footnoteLines = [];
 
     // 1. Fallback to PDF Metadata
@@ -85,7 +84,6 @@ class PdfParserService {
 
     bool isAbstract = false;
     bool isKeywords = false;
-    bool isReferences = false;
     bool isFootnotes = false;
     List<String> titleLines = [];
 
@@ -164,7 +162,6 @@ class PdfParserService {
       if (lowerText == 'abstract' || lowerText.startsWith('abstract:')) {
         isAbstract = true;
         isKeywords = false;
-        isReferences = false;
         if (lowerText.startsWith('abstract:')) {
           final stripped = _stripPrefix(richLine, RegExp(r'^[\s#*_]*abstract[:\s#*_]*', caseSensitive: false));
           if (stripped != null) abstractRichLines.add(stripped);
@@ -175,23 +172,19 @@ class PdfParserService {
           lowerText.startsWith('keywords ')) {
         isKeywords = true;
         isAbstract = false;
-        isReferences = false;
         if (lowerText.startsWith('keywords:') || lowerText.startsWith('keywords ')) {
           final stripped = _stripPrefix(richLine, RegExp(r'^[\s#*_]*keywords[:\s#*_]*', caseSensitive: false));
           if (stripped != null) keywordsRichLines.add(stripped);
         }
         continue;
       } else if (lowerText == 'bibliography' || lowerText == 'references') {
-        isReferences = true;
         isAbstract = false;
         isKeywords = false;
         isFootnotes = false;
-        continue;
       } else if (lowerText == 'footnotes' || lowerText == 'notes') {
         isFootnotes = true;
         isAbstract = false;
         isKeywords = false;
-        isReferences = false;
         continue;
       }
  
@@ -213,8 +206,6 @@ class PdfParserService {
         abstractRichLines.add(richLine);
       } else if (isKeywords) {
         keywordsRichLines.add(richLine);
-      } else if (isReferences) {
-        referenceLines.add(richLine);
       } else if (isFootnotes) {
         footnoteLines.add(richLine);
       } else if (title.isNotEmpty && authorFullName.isNotEmpty && fontSize >= 8.5 && fontSize <= 13.5) {
@@ -332,7 +323,6 @@ class PdfParserService {
       consolidatedBody.writeln(keywordsHtml);
     }
     consolidatedBody.writeln(_processBodyRichLines(bodyRichLines, standardMargin, standardLineHeight));
-    consolidatedBody.writeln(_processReferenceLines(referenceLines));
     consolidatedBody.writeln(_processFootnoteLines(footnoteLines));
 
     return ArticleMetadata(
@@ -586,10 +576,19 @@ class PdfParserService {
       
       String span = _translateInlineMarkdown(text);
       
-      // Apply styles in consistent order
-      if (first.isItalic) span = '<i>$span</i>';
-      if (first.isBold) span = '<b>$span</b>';
-      if (isSuperscript) span = '<sup>$span</sup>';
+      final trimmedSpan = span.trim();
+      final footnoteMatch = RegExp(r'^\[?(\d+)\]?$').firstMatch(trimmedSpan);
+      final isFootnoteRef = isSuperscript && footnoteMatch != null;
+      
+      if (isFootnoteRef) {
+        final id = footnoteMatch.group(1)!;
+        span = '<sup id="ref$id"><a href="#fn$id">$id</a></sup>';
+      } else {
+        // Apply styles in consistent order
+        if (first.isItalic) span = '<i>$span</i>';
+        if (first.isBold) span = '<b>$span</b>';
+        if (isSuperscript) span = '<sup>$span</sup>';
+      }
       
       if (first.uri != null) {
         final isMetadataLink = first.uri!.contains('doi.org') || first.uri!.contains('orcid.org');
@@ -631,27 +630,48 @@ class PdfParserService {
     return buffer.toString().trimRight();
   }
 
-  String _processReferenceLines(List<_RichLine> lines) {
-    if (lines.isEmpty) return '';
-    final buffer = StringBuffer();
-    buffer.writeln('<h2>Bibliography</h2>');
-    for (final line in lines) {
-      final html = _toRichHtml(line);
-      if (html.isEmpty) continue;
-      buffer.writeln('<div class="csl-entry">$html</div>');
-    }
-    return buffer.toString();
-  }
+
 
   String _processFootnoteLines(List<_RichLine> lines) {
     if (lines.isEmpty) return '';
     final buffer = StringBuffer();
     buffer.writeln('<h2>Notes</h2>');
+
+    final footnotes = <int, String>{};
+    int? currentId;
+    final prefixRegex = RegExp(r'^\[?(\d+)\]?\.?\s*');
+
     for (final line in lines) {
-      final html = _toRichHtml(line);
-      if (html.isEmpty) continue;
-      buffer.writeln('<p>$html</p>');
+      final text = line.plainText;
+      final match = prefixRegex.firstMatch(text);
+
+      if (match != null) {
+        final idStr = match.group(1)!;
+        final id = int.tryParse(idStr);
+        if (id != null) {
+          currentId = id;
+          final stripped = _stripPrefix(line, prefixRegex) ?? _RichLine(words: [], text: '', bounds: line.bounds, fontSize: line.fontSize);
+          footnotes[id] = _toRichHtml(stripped);
+          continue;
+        }
+      }
+
+      // If no match, append to current footnote if we have one
+      if (currentId != null) {
+        footnotes[currentId] = '${footnotes[currentId]} ${_toRichHtml(line)}';
+      } else {
+        // Fallback: just output the line as is
+        buffer.writeln('<p>${_toRichHtml(line)}</p>');
+      }
     }
+
+    // Output footnotes in sorted numerical order
+    final sortedKeys = footnotes.keys.toList()..sort();
+    for (final id in sortedKeys) {
+      final cleanHtml = footnotes[id]!.trim();
+      buffer.writeln('<p id="fn$id"><sup><a href="#ref$id">$id</a></sup> $cleanHtml</p>');
+    }
+
     return buffer.toString();
   }
 

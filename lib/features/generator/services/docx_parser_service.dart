@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:xml/xml.dart';
 import 'package:docx_to_markdown/docx_to_markdown.dart';
@@ -51,8 +52,45 @@ class DocxParserService {
        } catch (_) {}
     }
 
+    // Preprocess XML files to clean up spelling error tags and merge adjacent runs with same format
+    final modifiedXmls = <String, List<int>>{};
+    for (final zipFile in archive.files) {
+      if (zipFile.name == 'word/document.xml' || zipFile.name == 'word/footnotes.xml' || zipFile.name == 'word/endnotes.xml') {
+        try {
+          final xmlStr = utf8.decode(zipFile.content);
+          final document = XmlDocument.parse(xmlStr);
+          
+          document.findAllElements('w:proofErr').toList().forEach((node) {
+            node.parent?.children.remove(node);
+          });
+          
+          _mergeAdjacentRuns(document);
+          
+          modifiedXmls[zipFile.name] = utf8.encode(document.toXmlString());
+        } catch (_) {}
+      }
+    }
+    
+    Uint8List docxBytes = bytes;
+    if (modifiedXmls.isNotEmpty) {
+      try {
+        final newArchive = Archive();
+        for (final zipFile in archive.files) {
+          if (modifiedXmls.containsKey(zipFile.name)) {
+            final newBytes = modifiedXmls[zipFile.name]!;
+            newArchive.addFile(ArchiveFile(zipFile.name, newBytes.length, newBytes));
+          } else {
+            newArchive.addFile(zipFile);
+          }
+        }
+        docxBytes = Uint8List.fromList(ZipEncoder().encode(newArchive)!);
+      } catch (_) {
+        docxBytes = bytes;
+      }
+    }
+
     // Convert DOCX to Markdown
-    final converter = DocxConverter(bytes);
+    final converter = DocxConverter(docxBytes);
     String markdown = await converter.convert();
 
     // Preprocess Markdown
@@ -82,7 +120,7 @@ class DocxParserService {
     // Replace inline footnote references
     cleanMarkdown = cleanMarkdown.replaceAllMapped(RegExp(r'\[\^([^\]]+)\]'), (m) {
       final id = m.group(1)!;
-      return '<sup><a href="#fn$id" id="ref$id">$id</a></sup>';
+      return '<sup id="ref$id"><a href="#fn$id">$id</a></sup>';
     });
 
     // Split remaining content into paragraphs
@@ -225,33 +263,7 @@ class DocxParserService {
     final keywordsHtml = keywordsHtmlList.join('\n');
     final keywords = cleanHtmlToPlainText(keywordsHtml);
 
-    // Extract Bibliography section
-    int bibIndex = -1;
-    final bibParagraphsHtml = <String>[];
-    for (int i = 0; i < paragraphs.length; i++) {
-      final p = paragraphs[i];
-      final lower = p.toLowerCase();
-      if (lower == '## bibliography' || lower == 'bibliography' || lower == '## references' || lower == 'references' || lower == '**bibliography**' || lower == '**references**') {
-        bibIndex = i;
-        break;
-      }
-    }
 
-    if (bibIndex != -1) {
-      for (int j = bibIndex + 1; j < paragraphs.length; j++) {
-        final p = paragraphs[j];
-        if (p.isEmpty) continue;
-        if (p.startsWith('#')) break;
-        final robustP = _convertMarkdownToHtmlRobustly(p);
-        final html = md.markdownToHtml(robustP, extensionSet: md.ExtensionSet.gitHubFlavored).trim();
-        if (html.startsWith('<p>') && html.endsWith('</p>')) {
-          final inner = html.substring(3, html.length - 4);
-          bibParagraphsHtml.add('<div class="csl-entry">$inner</div>');
-        } else {
-          bibParagraphsHtml.add('<div class="csl-entry">$html</div>');
-        }
-      }
-    }
 
     // Extract Author Bio and Affiliation
     String authorBio = '';
@@ -319,7 +331,6 @@ class DocxParserService {
     final bodyHtmlList = <String>[];
     bool inAbstractSection = false;
     bool inKeywordsSection = false;
-    bool inBibliographySection = false;
     
     for (final p in paragraphs) {
       final trimmed = p.trim();
@@ -343,7 +354,6 @@ class DocxParserService {
       if (isAbstractHeader || startsWithAbstract) {
         inAbstractSection = true;
         inKeywordsSection = false;
-        inBibliographySection = false;
         continue;
       }
       
@@ -353,19 +363,10 @@ class DocxParserService {
       if (isKeywordsHeader || startsWithKeywords) {
         inKeywordsSection = true;
         inAbstractSection = false;
-        inBibliographySection = false;
         continue;
       }
       
-      // Bibliography check
-      if (lower == '## bibliography' || lower == 'bibliography' || lower == '## references' || lower == 'references' || lower == '**bibliography**' || lower == '**references**') {
-        inBibliographySection = true;
-        inAbstractSection = false;
-        inKeywordsSection = false;
-        continue;
-      }
-      
-      // If we are in abstract, keywords, or bibliography section, skip them from main body
+      // If we are in abstract or keywords section, skip them from main body
       if (inAbstractSection) {
         if (trimmed.startsWith('#')) {
           inAbstractSection = false;
@@ -379,9 +380,6 @@ class DocxParserService {
         } else {
           continue;
         }
-      }
-      if (inBibliographySection) {
-        continue;
       }
       
       // Compile paragraph/element to HTML
@@ -403,10 +401,17 @@ class DocxParserService {
     final footnoteSectionBuffer = StringBuffer();
     if (footnotesMap.isNotEmpty) {
       footnoteSectionBuffer.writeln('<h2>Notes</h2>');
-      footnotesMap.forEach((id, html) {
+      final sortedIds = footnotesMap.keys.toList()
+        ..sort((a, b) {
+          final aInt = int.tryParse(a) ?? 0;
+          final bInt = int.tryParse(b) ?? 0;
+          return aInt.compareTo(bInt);
+        });
+      for (final id in sortedIds) {
+        final html = footnotesMap[id]!;
         final cleanHtml = processImagesInHtml(html);
-        footnoteSectionBuffer.writeln('<p id="fn$id">$cleanHtml <a href="#ref$id">↩</a></p>');
-      });
+        footnoteSectionBuffer.writeln('<p id="fn$id"><sup><a href="#ref$id">$id</a></sup> $cleanHtml</p>');
+      }
     }
 
     // Combine all sections into the final body
@@ -421,13 +426,7 @@ class DocxParserService {
     }
     finalBody.writeln(consolidatedBody);
 
-    
-    if (bibParagraphsHtml.isNotEmpty) {
-      finalBody.writeln('<h2>Bibliography</h2>');
-      for (final bibHtml in bibParagraphsHtml) {
-        finalBody.writeln(processImagesInHtml(bibHtml));
-      }
-    }
+
 
     if (footnoteSectionBuffer.isNotEmpty) {
       finalBody.writeln(footnoteSectionBuffer.toString());
@@ -534,5 +533,79 @@ class DocxParserService {
       'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.',
     ];
     return '${months[date.month - 1]} ${date.year}';
+  }
+
+  void _mergeAdjacentRuns(XmlDocument document) {
+    for (final p in document.findAllElements('w:p')) {
+      final runs = p.findElements('w:r').toList();
+      if (runs.length < 2) continue;
+      
+      int i = 0;
+      while (i < runs.length - 1) {
+        final current = runs[i];
+        final next = runs[i + 1];
+        
+        final pChildren = p.children.toList();
+        final currentIdx = pChildren.indexOf(current);
+        final nextIdx = pChildren.indexOf(next);
+        if (nextIdx != currentIdx + 1) {
+          i++;
+          continue;
+        }
+        
+        final pr1 = current.findElements('w:rPr').firstOrNull;
+        final pr2 = next.findElements('w:rPr').firstOrNull;
+        
+        final otherElements1 = current.children.whereType<XmlElement>().where((e) => e.name.local != 'rPr' && e.name.local != 't');
+        final otherElements2 = next.children.whereType<XmlElement>().where((e) => e.name.local != 'rPr' && e.name.local != 't');
+        
+        if (otherElements1.isEmpty && otherElements2.isEmpty && _arePropertiesIdentical(pr1, pr2)) {
+          final t1 = current.findElements('w:t').firstOrNull;
+          final t2 = next.findElements('w:t').firstOrNull;
+          
+          if (t1 != null && t2 != null) {
+            final space1 = t1.getAttribute('xml:space');
+            final space2 = t2.getAttribute('xml:space');
+            if (space1 == 'preserve' || space2 == 'preserve' || t2.innerText.startsWith(' ') || t1.innerText.endsWith(' ')) {
+              t1.setAttribute('xml:space', 'preserve');
+            }
+            
+            t1.innerText = t1.innerText + t2.innerText;
+            next.parent?.children.remove(next);
+            runs.removeAt(i + 1);
+            continue;
+          }
+        }
+        i++;
+      }
+    }
+  }
+
+  bool _arePropertiesIdentical(XmlElement? pr1, XmlElement? pr2) {
+    if (pr1 == null && pr2 == null) return true;
+    if (pr1 == null || pr2 == null) return false;
+    
+    final children1 = pr1.children.whereType<XmlElement>().toList();
+    final children2 = pr2.children.whereType<XmlElement>().toList();
+    if (children1.length != children2.length) return false;
+    
+    for (final c1 in children1) {
+      final hasMatch = children2.any((c2) => 
+        c1.name.local == c2.name.local && 
+        _areAttributesEqual(c1, c2) &&
+        c1.innerText == c2.innerText
+      );
+      if (!hasMatch) return false;
+    }
+    return true;
+  }
+
+  bool _areAttributesEqual(XmlElement el1, XmlElement el2) {
+    if (el1.attributes.length != el2.attributes.length) return false;
+    for (final attr1 in el1.attributes) {
+      final attr2 = el2.getAttributeNode(attr1.name.local);
+      if (attr2 == null || attr2.value != attr1.value) return false;
+    }
+    return true;
   }
 }

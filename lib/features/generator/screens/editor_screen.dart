@@ -100,6 +100,9 @@ class _EditorScreenState extends State<EditorScreen> {
               if (op.attributes.size == 'small') {
                 return ['font-size: 12px'];
               }
+              if (op.attributes.size == 'large') {
+                return ['font-size: 24px'];
+              }
               return null;
             },
           ),
@@ -213,6 +216,15 @@ class _EditorScreenState extends State<EditorScreen> {
                       showSearchButton: true,
                       showSubscript: false,
                       showSuperscript: false,
+                      buttonOptions: QuillSimpleToolbarButtonOptions(
+                        fontSize: QuillToolbarFontSizeButtonOptions(
+                          items: {
+                            '12px': 'small',
+                            '16px': '0',
+                            '24px': 'large',
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -328,9 +340,13 @@ class _EditorScreenState extends State<EditorScreen> {
                                   const VerticalSpacing(0, 0),
                                   null,
                                 ),
-                                small: const TextStyle(
+                                sizeSmall: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF475569),
+                                ),
+                                sizeLarge: const TextStyle(
+                                  fontSize: 24,
+                                  color: Color(0xFF1D2B3E),
                                 ),
                               ),
                             ),
