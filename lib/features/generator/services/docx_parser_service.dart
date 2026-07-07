@@ -482,7 +482,9 @@ class DocxParserService {
   String _convertMarkdownToHtmlRobustly(String markdown) {
     if (markdown.isEmpty) return markdown;
     
-    String result = markdown;
+    // Clean redundant markdown markers first
+    final clean = cleanRedundantMarkdownMarkers(markdown);
+    String result = clean;
     
     // 1. Process Bold (Double Asterisks/Underscores): ** or __
     result = _replacePairs(result, '**', '<strong>', '</strong>');
@@ -581,31 +583,147 @@ class DocxParserService {
     }
   }
 
-  bool _arePropertiesIdentical(XmlElement? pr1, XmlElement? pr2) {
-    if (pr1 == null && pr2 == null) return true;
-    if (pr1 == null || pr2 == null) return false;
-    
-    final children1 = pr1.children.whereType<XmlElement>().toList();
-    final children2 = pr2.children.whereType<XmlElement>().toList();
-    if (children1.length != children2.length) return false;
-    
-    for (final c1 in children1) {
-      final hasMatch = children2.any((c2) => 
-        c1.name.local == c2.name.local && 
-        _areAttributesEqual(c1, c2) &&
-        c1.innerText == c2.innerText
-      );
-      if (!hasMatch) return false;
+  bool _isBold(XmlElement? rPr) {
+    if (rPr == null) return false;
+    final b = rPr.findElements('w:b').firstOrNull;
+    final bCs = rPr.findElements('w:bCs').firstOrNull;
+    bool hasBold = false;
+    if (b != null) {
+      final val = b.getAttribute('w:val');
+      if (val != 'false' && val != '0' && val != 'none' && val != 'off') {
+        hasBold = true;
+      } else if (val == null) {
+        hasBold = true;
+      }
     }
-    return true;
+    if (bCs != null) {
+      final val = bCs.getAttribute('w:val');
+      if (val != 'false' && val != '0' && val != 'none' && val != 'off') {
+        hasBold = true;
+      } else if (val == null) {
+        hasBold = true;
+      }
+    }
+    return hasBold;
   }
 
-  bool _areAttributesEqual(XmlElement el1, XmlElement el2) {
-    if (el1.attributes.length != el2.attributes.length) return false;
-    for (final attr1 in el1.attributes) {
-      final attr2 = el2.getAttributeNode(attr1.name.local);
-      if (attr2 == null || attr2.value != attr1.value) return false;
+  bool _isItalic(XmlElement? rPr) {
+    if (rPr == null) return false;
+    final i = rPr.findElements('w:i').firstOrNull;
+    final iCs = rPr.findElements('w:iCs').firstOrNull;
+    bool hasItalic = false;
+    if (i != null) {
+      final val = i.getAttribute('w:val');
+      if (val != 'false' && val != '0' && val != 'none' && val != 'off') {
+        hasItalic = true;
+      } else if (val == null) {
+        hasItalic = true;
+      }
     }
-    return true;
+    if (iCs != null) {
+      final val = iCs.getAttribute('w:val');
+      if (val != 'false' && val != '0' && val != 'none' && val != 'off') {
+        hasItalic = true;
+      } else if (val == null) {
+        hasItalic = true;
+      }
+    }
+    return hasItalic;
+  }
+
+  bool _arePropertiesIdentical(XmlElement? pr1, XmlElement? pr2) {
+    return _isBold(pr1) == _isBold(pr2) && _isItalic(pr1) == _isItalic(pr2);
   }
 }
+
+class _Span {
+  final String text;
+  final bool bold;
+  final bool italic;
+  _Span(this.text, this.bold, this.italic);
+}
+
+String cleanRedundantMarkdownMarkers(String text) {
+  int index = 0;
+  bool bold = false;
+  bool italic = false;
+  
+  final spans = <_Span>[];
+  final currentText = StringBuffer();
+  
+  void flushText() {
+    if (currentText.isNotEmpty) {
+      spans.add(_Span(currentText.toString(), bold, italic));
+      currentText.clear();
+    }
+  }
+  
+  while (index < text.length) {
+    if (text.startsWith('***', index) || text.startsWith('___', index)) {
+      flushText();
+      bold = !bold;
+      italic = !italic;
+      index += 3;
+    } else if (text.startsWith('**', index) || text.startsWith('__', index)) {
+      flushText();
+      bold = !bold;
+      index += 2;
+    } else if (text.startsWith('*', index) || text.startsWith('_', index)) {
+      flushText();
+      italic = !italic;
+      index += 1;
+    } else {
+      currentText.write(text[index]);
+      index++;
+    }
+  }
+  flushText();
+  
+  final mergedSpans = <_Span>[];
+  for (final span in spans) {
+    if (mergedSpans.isEmpty) {
+      mergedSpans.add(span);
+    } else {
+      final last = mergedSpans.last;
+      if (last.bold == span.bold && last.italic == span.italic) {
+        mergedSpans[mergedSpans.length - 1] = _Span(last.text + span.text, last.bold, last.italic);
+      } else {
+        mergedSpans.add(span);
+      }
+    }
+  }
+  
+  final buffer = StringBuffer();
+  bool currentBold = false;
+  bool currentItalic = false;
+  
+  for (final span in mergedSpans) {
+    final needBold = span.bold;
+    final needItalic = span.italic;
+    
+    if (currentBold != needBold && currentItalic != needItalic) {
+      buffer.write('***');
+      currentBold = needBold;
+      currentItalic = needItalic;
+    } else if (currentBold != needBold) {
+      buffer.write('**');
+      currentBold = needBold;
+    } else if (currentItalic != needItalic) {
+      buffer.write('*');
+      currentItalic = needItalic;
+    }
+    
+    buffer.write(span.text);
+  }
+  
+  if (currentBold && currentItalic) {
+    buffer.write('***');
+  } else if (currentBold) {
+    buffer.write('**');
+  } else if (currentItalic) {
+    buffer.write('*');
+  }
+  
+  return buffer.toString();
+}
+
