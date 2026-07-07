@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 
 import '../data/settings_repository.dart';
@@ -307,7 +308,10 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _authorOrcidCtrl.text = metadata.authorOrcid;
         _authorAffiliationCtrl.text = metadata.authorAffiliation;
 
-        _authorBioQuill.document = Document()..insert(0, metadata.authorBio);
+        final bioDelta = HtmlToDelta(
+          shouldInsertANewLine: (localName) => localName == 'p',
+        ).convert(metadata.authorBio);
+        _authorBioQuill.document = Document.fromDelta(bioDelta);
 
         _volumeCtrl.text = metadata.volume;
         _issueCtrl.text = metadata.issue;
