@@ -18,6 +18,12 @@ void main() {
         expect(result.authorAffiliation, equals('Kwantlen Polytechnic University'));
         expect(result.pdfGalleyId, equals('200'));
         expect(result.issueViewId, equals('16'));
+        expect(result.publishedDate, equals('2026-07-06'));
+        expect(result.issuedDate, equals('2026-07-06'));
+        expect(result.publishedDateMonYYYY, equals('Jul 2026'));
+        expect(result.publishYear, equals('2026'));
+        expect(result.submittedDate, equals('2025-09-26'));
+        expect(result.modifiedDate, equals('2026-07-06'));
       },
     );
 

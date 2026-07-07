@@ -5,12 +5,28 @@ class OjsScrapeResult {
   final String? pdfGalleyId;
   final String? issueViewId;
   final String? authorAffiliation;
+  final String? publishedDate;
+  final String? issuedDate;
+  final String? publishedDateMonYYYY;
+  final String? publishYear;
+  final String? submittedDate;
+  final String? modifiedDate;
 
-  OjsScrapeResult({this.pdfGalleyId, this.issueViewId, this.authorAffiliation});
+  OjsScrapeResult({
+    this.pdfGalleyId,
+    this.issueViewId,
+    this.authorAffiliation,
+    this.publishedDate,
+    this.issuedDate,
+    this.publishedDateMonYYYY,
+    this.publishYear,
+    this.submittedDate,
+    this.modifiedDate,
+  });
 }
 
 class OjsScraperService {
-  /// Fetches the article view page and extracts the PDF galley ID, Issue View ID, and Author Affiliation.
+  /// Fetches the article view page and extracts the PDF galley ID, Issue View ID, Author Affiliation, and dates.
   /// The URL is constructed as: {baseUrl}/index.php/{journalPath}/article/view/{articleId}
   /// The pdfGalleyId is the last part of the URL the PDF button links to.
   /// The issueViewId is the last part of the URL the Issue link points to.
@@ -32,20 +48,43 @@ class OjsScraperService {
     String? pdfGalleyId;
     String? issueViewId;
     String? authorAffiliation;
+    String? publishedDate;
+    String? issuedDate;
+    String? publishedDateMonYYYY;
+    String? publishYear;
+    String? submittedDate;
+    String? modifiedDate;
 
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final document = parse(response.body);
 
-        // Extract author affiliation from meta tags first
+        String? metaCitationDate;
+        String? metaDcDateCreated;
+        String? metaDcDateIssued;
+        String? metaDcDateSubmitted;
+        String? metaDcDateModified;
+
+        // Extract author affiliation and dates from meta tags first
         final metaTags = document.querySelectorAll('meta');
         for (final meta in metaTags) {
           final name = meta.attributes['name'];
-          final content = meta.attributes['content'];
-          if (name == 'citation_author_institution' && content != null && content.trim().isNotEmpty) {
-            authorAffiliation = content.trim();
-            break; // take first author's affiliation
+          final content = meta.attributes['content']?.trim();
+          if (content == null || content.isEmpty) continue;
+
+          if (name == 'citation_author_institution' && authorAffiliation == null) {
+            authorAffiliation = content;
+          } else if (name == 'citation_date') {
+            metaCitationDate = content;
+          } else if (name == 'DC.Date.created') {
+            metaDcDateCreated = content;
+          } else if (name == 'DC.Date.issued') {
+            metaDcDateIssued = content;
+          } else if (name == 'DC.Date.dateSubmitted') {
+            metaDcDateSubmitted = content;
+          } else if (name == 'DC.Date.modified') {
+            metaDcDateModified = content;
           }
         }
 
@@ -63,6 +102,58 @@ class OjsScraperService {
               if (text.isNotEmpty) {
                 authorAffiliation = text.replaceAll(RegExp(r'\s+'), ' ');
                 break;
+              }
+            }
+          }
+        }
+
+        // Fallback DOM parse for published date
+        String? domPublishedDate;
+        final publishedElement = document.querySelector('.article-details-published');
+        if (publishedElement != null) {
+          final text = publishedElement.text.replaceAll('Published', '').trim();
+          final dateRegex = RegExp(r'\b\d{4}[-/]\d{2}[-/]\d{2}\b');
+          final match = dateRegex.firstMatch(text);
+          if (match != null) {
+            domPublishedDate = match.group(0)?.replaceAll('/', '-');
+          } else if (text.isNotEmpty) {
+            domPublishedDate = text.replaceAll('/', '-');
+          }
+        }
+
+        final rawPublishedDate = metaCitationDate ?? metaDcDateIssued ?? metaDcDateCreated ?? domPublishedDate;
+        if (rawPublishedDate != null) {
+          publishedDate = rawPublishedDate.replaceAll('/', '-').trim();
+        }
+
+        issuedDate = metaDcDateIssued?.replaceAll('/', '-').trim() ?? publishedDate;
+        submittedDate = metaDcDateSubmitted?.replaceAll('/', '-').trim() ?? publishedDate;
+        modifiedDate = metaDcDateModified?.replaceAll('/', '-').trim() ?? publishedDate;
+
+        if (publishedDate != null) {
+          final yearMatch = RegExp(r'\b\d{4}\b').firstMatch(publishedDate);
+          if (yearMatch != null) {
+            publishYear = yearMatch.group(0);
+          }
+
+          try {
+            final parsedDate = DateTime.parse(publishedDate);
+            final months = [
+              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+            ];
+            publishedDateMonYYYY = '${months[parsedDate.month - 1]} ${parsedDate.year}';
+          } catch (_) {
+            final parts = publishedDate.split('-');
+            if (parts.length >= 2) {
+              final year = parts[0];
+              final monthInt = int.tryParse(parts[1]);
+              if (monthInt != null && monthInt >= 1 && monthInt <= 12) {
+                final months = [
+                  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+                ];
+                publishedDateMonYYYY = '${months[monthInt - 1]} $year';
               }
             }
           }
@@ -105,6 +196,12 @@ class OjsScraperService {
       pdfGalleyId: pdfGalleyId,
       issueViewId: issueViewId,
       authorAffiliation: authorAffiliation,
+      publishedDate: publishedDate,
+      issuedDate: issuedDate,
+      publishedDateMonYYYY: publishedDateMonYYYY,
+      publishYear: publishYear,
+      submittedDate: submittedDate,
+      modifiedDate: modifiedDate,
     );
   }
 }

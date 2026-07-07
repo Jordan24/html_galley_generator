@@ -694,8 +694,8 @@ class PdfParserService {
 
   String _formatMonYYYY(DateTime date) {
     final months = [
-      'Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June',
-      'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }

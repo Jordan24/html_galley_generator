@@ -12,24 +12,44 @@ class DocxParserService {
     final bytes = await file.readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
 
-    // Extract basic metadata: DOI -> articleId from footer/header
+    // Extract basic metadata: DOI -> articleId, volume, issue from footer/header
     String articleId = '';
+    String volume = '7';
+    String issue = '1';
     for (final zipFile in archive.files) {
       if (zipFile.name.startsWith('word/footer') || zipFile.name.startsWith('word/header')) {
         try {
           final xmlStr = utf8.decode(zipFile.content);
           final plainText = xmlStr.replaceAll(RegExp(r'<[^>]*>'), '');
+          
+          final volMatch = RegExp(r'Volume\s*(\d+)', caseSensitive: false).firstMatch(plainText);
+          final issMatch = RegExp(r'Issue\s*(\d+)', caseSensitive: false).firstMatch(plainText);
+          if (volMatch != null) {
+            volume = volMatch.group(1)!;
+          }
+          if (issMatch != null) {
+            issue = issMatch.group(1)!;
+          }
+
           if (plainText.contains('doi.org')) {
              final doiMatch = RegExp(r'(?:https?://)?doi\.org/[^\s<>"]+').firstMatch(plainText);
              if (doiMatch != null) {
                String doiUrl = doiMatch.group(0)!;
                doiUrl = doiUrl.replaceAll(RegExp(r'[./,;]+$'), '');
-               final parts = doiUrl.split('.');
-               if (parts.isNotEmpty) {
-                 final lastPart = parts.last;
-                 if (RegExp(r'^\d+$').hasMatch(lastPart)) {
-                   articleId = lastPart;
-                   break;
+               
+               final doiRegex = RegExp(r'v(\d+)i(\d+)\.(\d+)');
+               final match = doiRegex.firstMatch(doiUrl);
+               if (match != null) {
+                 volume = match.group(1)!;
+                 issue = match.group(2)!;
+                 articleId = match.group(3)!;
+               } else {
+                 final parts = doiUrl.split('.');
+                 if (parts.isNotEmpty) {
+                   final lastPart = parts.last;
+                   if (RegExp(r'^\d+$').hasMatch(lastPart)) {
+                     articleId = lastPart;
+                   }
                  }
                }
              }
@@ -432,8 +452,7 @@ class DocxParserService {
       finalBody.writeln(footnoteSectionBuffer.toString());
     }
 
-    String volume = '7';
-    String issue = '1';
+    // volume and issue are extracted from footer/header above
 
     final authorParts = authorFullName.trim().split(RegExp(r'\s+'));
     final authorFirstName = authorParts.isNotEmpty ? authorParts.first : '';
@@ -531,8 +550,8 @@ class DocxParserService {
 
   String _formatMonYYYY(DateTime date) {
     final months = [
-      'Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June',
-      'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }

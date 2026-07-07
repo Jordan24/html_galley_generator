@@ -162,6 +162,37 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         if (result.authorAffiliation != null && _authorAffiliationCtrl.text.isEmpty) {
           _authorAffiliationCtrl.text = result.authorAffiliation!;
         }
+        final todayStr = DateTime.now().toIso8601String().split('T').first;
+        final todayYear = DateTime.now().year.toString();
+        final months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        ];
+        final todayMonYYYY = '${months[DateTime.now().month - 1]} ${DateTime.now().year}';
+
+        bool isDefaultOrEmpty(String text, String defaultVal) {
+          final trimmed = text.trim();
+          return trimmed.isEmpty || trimmed == defaultVal;
+        }
+
+        if (result.publishedDate != null && isDefaultOrEmpty(_publishedDateCtrl.text, todayStr)) {
+          _publishedDateCtrl.text = result.publishedDate!;
+        }
+        if (result.issuedDate != null && isDefaultOrEmpty(_issuedDateCtrl.text, todayStr)) {
+          _issuedDateCtrl.text = result.issuedDate!;
+        }
+        if (result.publishedDateMonYYYY != null && isDefaultOrEmpty(_publishedDateMonYYYYCtrl.text, todayMonYYYY)) {
+          _publishedDateMonYYYYCtrl.text = result.publishedDateMonYYYY!;
+        }
+        if (result.publishYear != null && isDefaultOrEmpty(_publishYearCtrl.text, todayYear)) {
+          _publishYearCtrl.text = result.publishYear!;
+        }
+        if (result.submittedDate != null && isDefaultOrEmpty(_submittedDateCtrl.text, todayStr)) {
+          _submittedDateCtrl.text = result.submittedDate!;
+        }
+        if (result.modifiedDate != null && isDefaultOrEmpty(_modifiedDateCtrl.text, todayStr)) {
+          _modifiedDateCtrl.text = result.modifiedDate!;
+        }
       });
     }
   }
