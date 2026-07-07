@@ -140,7 +140,7 @@ class DocxParserService {
     // Replace inline footnote references
     cleanMarkdown = cleanMarkdown.replaceAllMapped(RegExp(r'\[\^([^\]]+)\]'), (m) {
       final id = m.group(1)!;
-      return '<sup id="ref$id"><a href="#fn$id">$id</a></sup>';
+      return '<sup id="ref$id"><a href="#fn$id">[$id]</a></sup>';
     });
 
     // Split remaining content into paragraphs
@@ -430,7 +430,7 @@ class DocxParserService {
       for (final id in sortedIds) {
         final html = footnotesMap[id]!;
         final cleanHtml = processImagesInHtml(html);
-        footnoteSectionBuffer.writeln('<p id="fn$id"><sup><a href="#ref$id">$id</a></sup> $cleanHtml</p>');
+        footnoteSectionBuffer.writeln('<p id="fn$id"><a href="#ref$id">[$id]</a> $cleanHtml</p>');
       }
     }
 

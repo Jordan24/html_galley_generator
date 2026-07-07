@@ -582,7 +582,7 @@ class PdfParserService {
       
       if (isFootnoteRef) {
         final id = footnoteMatch.group(1)!;
-        span = '<sup id="ref$id"><a href="#fn$id">$id</a></sup>';
+        span = '<sup id="ref$id"><a href="#fn$id">[$id]</a></sup>';
       } else {
         // Apply styles in consistent order
         if (first.isItalic) span = '<i>$span</i>';
@@ -669,7 +669,7 @@ class PdfParserService {
     final sortedKeys = footnotes.keys.toList()..sort();
     for (final id in sortedKeys) {
       final cleanHtml = footnotes[id]!.trim();
-      buffer.writeln('<p id="fn$id"><sup><a href="#ref$id">$id</a></sup> $cleanHtml</p>');
+      buffer.writeln('<p id="fn$id"><a href="#ref$id">[$id]</a> $cleanHtml</p>');
     }
 
     return buffer.toString();

@@ -44,8 +44,8 @@ void main() {
       expect(metadata.articleBody, contains('<p style="font-size: 12px;">Figure 3.'));
 
       // Verify footnote formatting and back-links in DOCX
-      expect(metadata.articleBody, contains('<sup id="ref1"><a href="#fn1">1</a></sup>'));
-      expect(metadata.articleBody, contains('<p id="fn1"><sup><a href="#ref1">1</a></sup> It is important to note that, as of summer 2025'));
+      expect(metadata.articleBody, contains('<sup id="ref1"><a href="#fn1">[1]</a></sup>'));
+      expect(metadata.articleBody, contains('<p id="fn1"><a href="#ref1">[1]</a> It is important to note that, as of summer 2025'));
     });
 
     test('PDF parser extracts abstract and keywords with rich styling', () async {

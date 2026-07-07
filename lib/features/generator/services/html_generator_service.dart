@@ -40,43 +40,54 @@ class HtmlGeneratorService {
     String template = await rootBundle.loadString('assets/template.html');
     
     // Post-process articleContent to restore/ensure proper footnote back-links and ids
-    // 1. Convert any inline footnote citation to the target format: <sup id="ref$id"><a href="#fn$id">$id</a></sup>
+    // 1. Convert any inline footnote citation to the target format: <sup id="ref$id"><a href="#fn$id">[$id]</a></sup>
     // This matches both:
     //   - <sup><a href="#fn1">1</a></sup>
     //   - <a href="#fn1"><sup>1</sup></a>
     var processedContent = articleContent.replaceAllMapped(
-      RegExp(r'<sup>\s*<a\s+[^>]*?href="#fn(\d+)"[^>]*?>(\d+)</a>\s*</sup>'),
+      RegExp(r'<sup([^>]*?)>\s*<a\s+[^>]*?href="#fn(\d+)"[^>]*?>\s*\[?(\d+)\]?\s*</a>\s*</sup>'),
       (match) {
-        final id = match.group(1)!;
-        return '<sup id="ref$id"><a href="#fn$id">$id</a></sup>';
+        final id = match.group(2)!;
+        return '<sup id="ref$id"><a href="#fn$id">[$id]</a></sup>';
       }
     );
     processedContent = processedContent.replaceAllMapped(
-      RegExp(r'<a\s+[^>]*?href="#fn(\d+)"[^>]*?>\s*<sup>\s*(\d+)\s*</sup>\s*</a>'),
+      RegExp(r'<a\s+[^>]*?href="#fn(\d+)"[^>]*?>\s*<sup([^>]*?)>\s*\[?(\d+)\]?\s*</sup>\s*</a>'),
       (match) {
         final id = match.group(1)!;
-        return '<sup id="ref$id"><a href="#fn$id">$id</a></sup>';
+        return '<sup id="ref$id"><a href="#fn$id">[$id]</a></sup>';
       }
     );
 
-    // 2. Convert any footnote paragraph starting link to the target format: <p id="fn$id"><sup><a href="#ref$id">$id</a></sup>
+    // 2. Convert any footnote paragraph starting link to the target format: <p id="fn$id"><a href="#ref$id">[$id]</a>
     // This matches both:
     //   - <p><sup><a href="#ref1">1</a></sup>
     //   - <p><a href="#ref1"><sup>1</sup></a>
     processedContent = processedContent.replaceAllMapped(
-      RegExp(r'<p([^>]*?)>\s*<sup>\s*<a\s+[^>]*?href="#ref(\d+)"([^>]*?)>(\d+)</a>\s*</sup>'),
+      RegExp(r'<p([^>]*?)>\s*<sup>\s*<a\s+[^>]*?href="#ref(\d+)"([^>]*?)>\s*\[?(\d+)\]?\s*</a>\s*</sup>'),
       (match) {
         final pAttrs = match.group(1)!;
         final id = match.group(2)!;
-        return '<p$pAttrs id="fn$id"><sup><a href="#ref$id">$id</a></sup>';
+        return '<p$pAttrs id="fn$id"><a href="#ref$id">[$id]</a>';
       }
     );
     processedContent = processedContent.replaceAllMapped(
-      RegExp(r'<p([^>]*?)>\s*<a\s+[^>]*?href="#ref(\d+)"([^>]*?)>\s*<sup>\s*(\d+)\s*</sup>\s*</a>'),
+      RegExp(r'<p([^>]*?)>\s*<a\s+[^>]*?href="#ref(\d+)"([^>]*?)>\s*<sup>\s*\[?(\d+)\]?\s*</sup>\s*</a>'),
       (match) {
         final pAttrs = match.group(1)!;
         final id = match.group(2)!;
-        return '<p$pAttrs id="fn$id"><sup><a href="#ref$id">$id</a></sup>';
+        return '<p$pAttrs id="fn$id"><a href="#ref$id">[$id]</a>';
+      }
+    );
+    processedContent = processedContent.replaceAllMapped(
+      RegExp(r'<p([^>]*?)>\s*<a\s+[^>]*?href="#ref(\d+)"([^>]*?)>\s*\[?(\d+)\]?\s*</a>'),
+      (match) {
+        final pAttrs = match.group(1)!;
+        final id = match.group(2)!;
+        if (pAttrs.contains('id="fn')) {
+          return match.group(0)!;
+        }
+        return '<p$pAttrs id="fn$id"><a href="#ref$id">[$id]</a>';
       }
     );
 

@@ -103,10 +103,10 @@ void main() {
     final fullHtml = await htmlGenerator.buildFullHtml(simulatedEditorContent, metadata, settings);
 
     // Verify IDs are successfully restored and target="_blank" is stripped for internal links
-    expect(fullHtml, contains('<sup id="ref1"><a href="#fn1">1</a></sup>'));
-    expect(fullHtml, contains('<sup id="ref2"><a href="#fn2">2</a></sup>'));
-    expect(fullHtml, contains('<p id="fn1"><sup><a href="#ref1">1</a></sup>'));
-    expect(fullHtml, contains('<p id="fn2"><sup><a href="#ref2">2</a></sup>'));
+    expect(fullHtml, contains('<sup id="ref1"><a href="#fn1">[1]</a></sup>'));
+    expect(fullHtml, contains('<sup id="ref2"><a href="#fn2">[2]</a></sup>'));
+    expect(fullHtml, contains('<p id="fn1"><a href="#ref1">[1]</a>'));
+    expect(fullHtml, contains('<p id="fn2"><a href="#ref2">[2]</a>'));
     expect(fullHtml, isNot(contains('href="#fn1" target="_blank"')));
     expect(fullHtml, isNot(contains('target="_blank" href="#fn1"')));
     expect(fullHtml, isNot(contains('href="#ref1" target="_blank"')));
