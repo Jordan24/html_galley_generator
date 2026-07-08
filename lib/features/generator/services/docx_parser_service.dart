@@ -116,7 +116,8 @@ class DocxParserService {
 
     // Preprocess Markdown
     // 1. Clean leading/inline link anchors that might pollute headers/text
-    String cleanMarkdown = markdown.replaceAll(RegExp(r'''<a\s+id=["'][\w\d]+["']>\s*</a>'''), '');
+    var cleanMarkdown = markdown.replaceAll(RegExp(r'''<a\s+id=["'][\w\d]+["']>\s*</a>'''), '');
+    cleanMarkdown = _cleanMarkdownLinks(cleanMarkdown);
 
     // 2. Extract Footnotes
     final footnotesMap = <String, String>{};
@@ -555,6 +556,40 @@ class DocxParserService {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[date.month - 1]} ${date.year}';
+  }
+
+  String _cleanMarkdownLinks(String markdown) {
+    // Regex matches [linkText](linkUrl)
+    final linkRegex = RegExp(r'\[([^\]]+)\]\(([^)]+)\)');
+    return markdown.replaceAllMapped(linkRegex, (match) {
+      var text = match.group(1)!;
+      var url = match.group(2)!;
+
+      // 1. Clean up escaped or unescaped HTML underline/formatting tags in the text
+      text = text.replaceAll(RegExp(r'\\?<u\\?>', caseSensitive: false), '');
+      text = text.replaceAll(RegExp(r'\\?</u\\?>', caseSensitive: false), '');
+      text = text.replaceAll(RegExp(r'\\?&lt;u\\?&gt;', caseSensitive: false), '');
+      text = text.replaceAll(RegExp(r'\\?&lt;/u\\?&gt;', caseSensitive: false), '');
+
+      // 2. Remove backslashes escaping underscores or other characters in the link text
+      text = text.replaceAllMapped(RegExp(r'\\+([_#\\])'), (m) => m.group(1)!);
+      text = text.replaceAll(RegExp(r'\\+$'), ''); // Clean up trailing backslashes
+      text = text.trim();
+
+      // 3. Remove backslashes escaping characters in the URL
+      url = url.replaceAllMapped(RegExp(r'\\+([_#\\])'), (m) => m.group(1)!);
+      url = url.replaceAll(RegExp(r'\\+$'), '');
+      url = url.trim();
+
+      // 4. If the link text is a full URL (http, https, mailto, doi.org) but the URL was truncated
+      // to just a fragment/anchor because of a '#' symbol (e.g. webpage: [url](#/index)), restore the full URL.
+      if ((text.startsWith('http://') || text.startsWith('https://') || text.startsWith('www.')) &&
+          (url.startsWith('#') || !url.contains('://'))) {
+        url = text;
+      }
+
+      return '[$text]($url)';
+    });
   }
 
   void _cleanParagraphBorders(XmlDocument document) {
