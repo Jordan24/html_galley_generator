@@ -503,8 +503,19 @@ class DocxParserService {
   String _convertMarkdownToHtmlRobustly(String markdown) {
     if (markdown.isEmpty) return markdown;
     
+    // Replace markdown links, images, and HTML tags with placeholders to avoid corrupting them.
+    final placeholders = <String>[];
+    final regex = RegExp(r'(!?\[[^\]]*\]\([^)]*\)|<[^>]+>)');
+    
+    final temp = markdown.replaceAllMapped(regex, (match) {
+      final matchedText = match.group(0)!;
+      final placeholder = '@@@PLACEHOLDER${placeholders.length}@@@';
+      placeholders.add(matchedText);
+      return placeholder;
+    });
+
     // Clean redundant markdown markers first
-    final clean = cleanRedundantMarkdownMarkers(markdown);
+    final clean = cleanRedundantMarkdownMarkers(temp);
     String result = clean;
     
     // 1. Process Bold (Double Asterisks/Underscores): ** or __
@@ -514,6 +525,11 @@ class DocxParserService {
     // 2. Process Italics (Single Asterisks/Underscores): * or _
     result = _replacePairs(result, '*', '<em>', '</em>');
     result = _replacePairs(result, '_', '<em>', '</em>');
+    
+    // Restore placeholders
+    for (int i = 0; i < placeholders.length; i++) {
+      result = result.replaceAll('@@@PLACEHOLDER${i}@@@', placeholders[i]);
+    }
     
     return result;
   }
@@ -572,12 +588,12 @@ class DocxParserService {
       text = text.replaceAll(RegExp(r'\\?&lt;/u\\?&gt;', caseSensitive: false), '');
 
       // 2. Remove backslashes escaping underscores or other characters in the link text
-      text = text.replaceAllMapped(RegExp(r'\\+([_#\\])'), (m) => m.group(1)!);
+      text = text.replaceAllMapped(RegExp(r'\\+([_*#\\])'), (m) => m.group(1)!);
       text = text.replaceAll(RegExp(r'\\+$'), ''); // Clean up trailing backslashes
       text = text.trim();
 
       // 3. Remove backslashes escaping characters in the URL
-      url = url.replaceAllMapped(RegExp(r'\\+([_#\\])'), (m) => m.group(1)!);
+      url = url.replaceAllMapped(RegExp(r'\\+([_*#\\])'), (m) => m.group(1)!);
       url = url.replaceAll(RegExp(r'\\+$'), '');
       url = url.trim();
 
