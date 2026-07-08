@@ -94,6 +94,22 @@ class HtmlGeneratorService {
       baseUrl = baseUrl.substring(0, baseUrl.length - 1);
     }
 
+    String result = text;
+    if (metadata.authorOrcid.trim().isEmpty) {
+      result = result.replaceAll(
+        RegExp(r'<link\s+[^>]*?orcidProfile\.css[^>]*?>\s*', caseSensitive: false, dotAll: true),
+        '',
+      );
+      result = result.replaceAll(
+        RegExp(r'<a\s+class="orcidImage"[^>]*?>.*?</a>\s*', caseSensitive: false, dotAll: true),
+        '',
+      );
+      result = result.replaceAll(
+        RegExp(r'<div\s+class="article-details-author-orcid"[^>]*?>.*?</div>\s*', caseSensitive: false, dotAll: true),
+        '',
+      );
+    }
+
     final replacements = {
       '{journalBaseUrl}': baseUrl,
       '{journalPath}': settings.journalPath.trim(),
@@ -137,7 +153,6 @@ class HtmlGeneratorService {
       '{authorBio}': _cleanRedundantTags(_processAuthorBio(metadata)),
     };
 
-    String result = text;
     replacements.forEach((key, value) {
       result = result.replaceAll(key, value);
     });
