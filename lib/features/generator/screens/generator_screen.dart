@@ -351,7 +351,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _authorAffiliationCtrl.text = metadata.authorAffiliation;
 
         final bioDelta = HtmlToDelta(
-          shouldInsertANewLine: (localName) => localName == 'p',
+          shouldInsertANewLine: (localName) => localName == 'p' || localName == 'blockquote',
         ).convert(metadata.authorBio);
         _authorBioQuill.document = Document.fromDelta(bioDelta);
 

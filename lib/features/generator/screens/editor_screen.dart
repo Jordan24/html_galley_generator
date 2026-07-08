@@ -47,7 +47,7 @@ class _EditorScreenState extends State<EditorScreen> {
         widget.settings,
       );
       final delta = HtmlToDelta(
-        shouldInsertANewLine: (localName) => localName == 'p',
+        shouldInsertANewLine: (localName) => localName == 'p' || localName == 'blockquote',
       ).convert(html);
       
       final controller = QuillController(
@@ -95,7 +95,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 return ['max-width: 100%', 'object-fit: contain'];
               }
               if (op.isBlockquote()) {
-                return ['border-left: 4px solid #ccc', 'padding-left: 16px'];
+                return ['margin-left: 36.0pt', 'margin-right: 36.0pt'];
               }
               if (op.attributes.size == 'small') {
                 return ['font-size: 12px'];

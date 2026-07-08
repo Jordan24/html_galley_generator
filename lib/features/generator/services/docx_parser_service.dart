@@ -86,6 +86,7 @@ class DocxParserService {
           
           _mergeAdjacentRuns(document);
           _cleanParagraphBorders(document);
+          _tagIndentedParagraphs(document);
           
           modifiedXmls[zipFile.name] = utf8.encode(document.toXmlString());
         } catch (_) {}
@@ -152,7 +153,12 @@ class DocxParserService {
     String cleanMarkdownToPlainText(String text) {
       final robustText = _convertMarkdownToHtmlRobustly(text);
       final html = md.markdownToHtml(robustText, extensionSet: md.ExtensionSet.gitHubFlavored);
-      return html.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim().replaceAll('\uFFFD', "'");
+      return html
+          .replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '')
+          .replaceAll(RegExp(r'<[^>]*>'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim()
+          .replaceAll('\uFFFD', "'");
     }
 
     // Title is the first paragraph
@@ -179,27 +185,30 @@ class DocxParserService {
 
     for (int i = 0; i < paragraphs.length; i++) {
       final p = paragraphs[i];
-      final lower = p.toLowerCase();
+      final indentMatch = RegExp(r'\[:indent:[^\]]+\]').firstMatch(p);
+      final indentMarker = indentMatch?.group(0) ?? '';
+      final cleanP = p.replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '');
+      final lower = cleanP.toLowerCase();
 
       final isAbstractHeader = lower == '## abstract' || lower == 'abstract' || lower == '**abstract**' || lower == '*abstract*';
       final startsWithAbstract = lower.startsWith('abstract:') || lower.startsWith('**abstract:**') || lower.startsWith('*abstract:*');
 
       if (isAbstractHeader || startsWithAbstract) {
         collectingAbstract = true;
-        String content = p;
+        String content = cleanP;
         if (startsWithAbstract) {
-          content = p.replaceFirst(RegExp(r'^[\s#*_]*abstract[:\s#*_]*', caseSensitive: false), '');
+          content = cleanP.replaceFirst(RegExp(r'^[\s#*_]*abstract[:\s#*_]*', caseSensitive: false), '');
         } else {
           continue;
         }
         if (content.trim().isNotEmpty) {
-          abstractMarkdownParagraphs.add(content.trim());
+          abstractMarkdownParagraphs.add(indentMarker + content.trim());
         }
         continue;
       }
 
       if (collectingAbstract) {
-        if (p.startsWith('#') || 
+        if (cleanP.startsWith('#') || 
             lower.startsWith('keywords') || 
             lower.startsWith('**keywords') || 
             lower.startsWith('*keywords') ||
@@ -220,27 +229,30 @@ class DocxParserService {
 
     for (int i = 0; i < paragraphs.length; i++) {
       final p = paragraphs[i];
-      final lower = p.toLowerCase();
+      final indentMatch = RegExp(r'\[:indent:[^\]]+\]').firstMatch(p);
+      final indentMarker = indentMatch?.group(0) ?? '';
+      final cleanP = p.replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '');
+      final lower = cleanP.toLowerCase();
 
       final isKeywordsHeader = lower == '## keywords' || lower == 'keywords' || lower == '**keywords**' || lower == '*keywords*';
       final startsWithKeywords = lower.startsWith('keywords:') || lower.startsWith('**keywords:**') || lower.startsWith('*keywords:*') || lower.startsWith('keywords ');
 
       if (isKeywordsHeader || startsWithKeywords) {
         collectingKeywords = true;
-        String content = p;
+        String content = cleanP;
         if (startsWithKeywords) {
-          content = p.replaceFirst(RegExp(r'^[\s#*_]*keywords[:\s#*_]*', caseSensitive: false), '');
+          content = cleanP.replaceFirst(RegExp(r'^[\s#*_]*keywords[:\s#*_]*', caseSensitive: false), '');
         } else {
           continue;
         }
         if (content.trim().isNotEmpty) {
-          keywordsMarkdownParagraphs.add(content.trim());
+          keywordsMarkdownParagraphs.add(indentMarker + content.trim());
         }
         continue;
       }
 
       if (collectingKeywords) {
-        if (p.startsWith('#') || 
+        if (cleanP.startsWith('#') || 
             lower == 'bibliography' ||
             lower == 'references' ||
             lower == '## bibliography' ||
@@ -255,6 +267,7 @@ class DocxParserService {
     // Clean plain text versions
     String cleanHtmlToPlainText(String html) {
       return html
+          .replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '')
           .replaceAll(RegExp(r'<[^>]*>'), ' ')
           .replaceAll(RegExp(r'\s+'), ' ')
           .trim()
@@ -267,7 +280,7 @@ class DocxParserService {
       final robustP = _convertMarkdownToHtmlRobustly(p);
       final html = md.markdownToHtml(robustP, extensionSet: md.ExtensionSet.gitHubFlavored).trim();
       if (html.isNotEmpty) {
-        abstractHtmlList.add(html);
+        abstractHtmlList.add(_processIndentation(html));
       }
     }
     final abstractHtml = abstractHtmlList.join('\n');
@@ -279,7 +292,7 @@ class DocxParserService {
       final robustP = _convertMarkdownToHtmlRobustly(p);
       final html = md.markdownToHtml(robustP, extensionSet: md.ExtensionSet.gitHubFlavored).trim();
       if (html.isNotEmpty) {
-        keywordsHtmlList.add(html);
+        keywordsHtmlList.add(_processIndentation(html));
       }
     }
     final keywordsHtml = keywordsHtmlList.join('\n');
@@ -296,7 +309,7 @@ class DocxParserService {
         if (bioRegex.hasMatch(p)) {
            final robustP = _convertMarkdownToHtmlRobustly(p);
            final bioHtml = md.markdownToHtml(robustP, extensionSet: md.ExtensionSet.gitHubFlavored).trim();
-           authorBio = bioHtml;
+           authorBio = bioHtml.replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '');
            if (authorBio.startsWith('<p>') && authorBio.endsWith('</p>')) {
              authorBio = authorBio.substring(3, authorBio.length - 4);
            }
@@ -358,15 +371,16 @@ class DocxParserService {
       final trimmed = p.trim();
       if (trimmed.isEmpty) continue;
       
-      final lower = trimmed.toLowerCase();
+      final cleanTrimmed = trimmed.replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '');
+      final lower = cleanTrimmed.toLowerCase();
       
       // Skip title
-      if (trimmed == '# $title' || trimmed == title || cleanMarkdownToPlainText(trimmed) == title) {
+      if (cleanTrimmed == '# $title' || cleanTrimmed == title || cleanMarkdownToPlainText(trimmed) == title) {
         continue;
       }
       
       // Skip author full name line
-      if (trimmed == authorFullName) {
+      if (cleanTrimmed == authorFullName) {
         continue;
       }
       
@@ -390,14 +404,14 @@ class DocxParserService {
       
       // If we are in abstract or keywords section, skip them from main body
       if (inAbstractSection) {
-        if (trimmed.startsWith('#')) {
+        if (cleanTrimmed.startsWith('#')) {
           inAbstractSection = false;
         } else {
           continue;
         }
       }
       if (inKeywordsSection) {
-        if (trimmed.startsWith('#')) {
+        if (cleanTrimmed.startsWith('#')) {
           inKeywordsSection = false;
         } else {
           continue;
@@ -413,6 +427,7 @@ class DocxParserService {
         if (RegExp(r'^Fig(ure|s|\.)?\s+\d+', caseSensitive: false).hasMatch(plain)) {
           html = html.replaceFirst('<p>', '<p style="font-size: 12px;">');
         }
+        html = _processIndentation(html);
         bodyHtmlList.add(processImagesInHtml(html));
       }
     }
@@ -432,7 +447,8 @@ class DocxParserService {
       for (final id in sortedIds) {
         final html = footnotesMap[id]!;
         final cleanHtml = processImagesInHtml(html);
-        footnoteSectionBuffer.writeln('<p id="fn$id"><a href="#ref$id">[$id]</a> $cleanHtml</p>');
+        final footnoteParagraph = '<p id="fn$id"><a href="#ref$id">[$id]</a> $cleanHtml</p>';
+        footnoteSectionBuffer.writeln(_processIndentation(footnoteParagraph));
       }
     }
 
@@ -735,6 +751,125 @@ class DocxParserService {
 
   bool _arePropertiesIdentical(XmlElement? pr1, XmlElement? pr2) {
     return _isBold(pr1) == _isBold(pr2) && _isItalic(pr1) == _isItalic(pr2);
+  }
+
+  void _tagIndentedParagraphs(XmlDocument document) {
+    for (final p in document.findAllElements('w:p')) {
+      final pPr = p.findElements('w:pPr').firstOrNull;
+      if (pPr == null) continue;
+      final ind = pPr.findElements('w:ind').firstOrNull;
+      if (ind == null) continue;
+
+      final leftAttr = ind.getAttribute('w:left') ?? ind.getAttribute('w:start');
+      final rightAttr = ind.getAttribute('w:right') ?? ind.getAttribute('w:end');
+      final firstLineAttr = ind.getAttribute('w:firstLine');
+      final hangingAttr = ind.getAttribute('w:hanging');
+
+      final left = int.tryParse(leftAttr ?? '') ?? 0;
+      final right = int.tryParse(rightAttr ?? '') ?? 0;
+      final firstLine = int.tryParse(firstLineAttr ?? '') ?? 0;
+      final hanging = int.tryParse(hangingAttr ?? '') ?? 0;
+
+      if (left == 0 && right == 0 && firstLine == 0 && hanging == 0) continue;
+
+      final t = p.findAllElements('w:t').firstOrNull;
+      if (t != null) {
+        final marker = '[:indent:left=$left,right=$right,firstLine=$firstLine,hanging=$hanging:]';
+        t.innerText = marker + t.innerText;
+      }
+    }
+  }
+
+  String _processIndentation(String html) {
+    final indentRegex = RegExp(r'\[:indent:([^\]]+)\]');
+    final match = indentRegex.firstMatch(html);
+    if (match == null) return html;
+
+    final marker = match.group(0)!;
+    final attrsStr = match.group(1)!;
+
+    int left = 0;
+    int right = 0;
+    int firstLine = 0;
+    int hanging = 0;
+
+    final parts = attrsStr.split(',');
+    for (final part in parts) {
+      final kv = part.split('=');
+      if (kv.length == 2) {
+        final key = kv[0].trim();
+        final val = int.tryParse(kv[1].trim()) ?? 0;
+        if (key == 'left') left = val;
+        if (key == 'right') right = val;
+        if (key == 'firstLine') firstLine = val;
+        if (key == 'hanging') hanging = val;
+      }
+    }
+
+    var cleanHtml = html.replaceFirst(marker, '');
+
+    final styles = <String>[];
+    if (left > 0) {
+      styles.add('margin-left: ${(left / 20).toStringAsFixed(1)}pt');
+    }
+    if (right > 0) {
+      styles.add('margin-right: ${(right / 20).toStringAsFixed(1)}pt');
+    }
+    if (firstLine > 0) {
+      styles.add('text-indent: ${(firstLine / 20).toStringAsFixed(1)}pt');
+    }
+    if (hanging > 0) {
+      styles.add('text-indent: -${(hanging / 20).toStringAsFixed(1)}pt');
+      final totalLeft = left + hanging;
+      styles.removeWhere((s) => s.startsWith('margin-left:'));
+      styles.add('margin-left: ${(totalLeft / 20).toStringAsFixed(1)}pt');
+    }
+
+    if (styles.isEmpty) return cleanHtml;
+
+    final styleContent = styles.join('; ') + ';';
+
+    final cleanTrimmed = cleanHtml.trimLeft();
+    final tagRegex = RegExp(r'^<([a-zA-Z0-9]+)([^>]*)>');
+    final tagMatch = tagRegex.firstMatch(cleanTrimmed);
+    if (tagMatch != null) {
+      var tagName = tagMatch.group(1)!;
+      var tagAttrs = tagMatch.group(2)!;
+
+      bool isConvertedToBlockquote = false;
+      if (tagName == 'p' && (left > 0 || hanging > 0)) {
+        tagName = 'blockquote';
+        isConvertedToBlockquote = true;
+      }
+
+      if (tagAttrs.contains('style="')) {
+        tagAttrs = tagAttrs.replaceFirstMapped(
+          RegExp(r'style="([^"]*)"'),
+          (m) {
+            final existing = m.group(1)!.trim();
+            final sep = (existing.isEmpty || existing.endsWith(';')) ? '' : ';';
+            return 'style="$existing$sep $styleContent"';
+          },
+        );
+      } else {
+        tagAttrs = '$tagAttrs style="$styleContent"';
+      }
+
+      final leadingSpaceCount = cleanHtml.length - cleanTrimmed.length;
+      final leadingSpace = cleanHtml.substring(0, leadingSpaceCount);
+
+      var contentAndEnd = cleanTrimmed.substring(tagMatch.end);
+      if (isConvertedToBlockquote) {
+        final lastCloseP = contentAndEnd.lastIndexOf('</p>');
+        if (lastCloseP != -1) {
+          contentAndEnd = contentAndEnd.substring(0, lastCloseP) + '</blockquote>' + contentAndEnd.substring(lastCloseP + 4);
+        }
+      }
+
+      cleanHtml = leadingSpace + '<$tagName$tagAttrs>' + contentAndEnd;
+    }
+
+    return cleanHtml;
   }
 }
 
