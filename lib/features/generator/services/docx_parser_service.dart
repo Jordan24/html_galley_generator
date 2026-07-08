@@ -85,6 +85,7 @@ class DocxParserService {
           });
           
           _mergeAdjacentRuns(document);
+          _cleanParagraphBorders(document);
           
           modifiedXmls[zipFile.name] = utf8.encode(document.toXmlString());
         } catch (_) {}
@@ -554,6 +555,37 @@ class DocxParserService {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[date.month - 1]} ${date.year}';
+  }
+
+  void _cleanParagraphBorders(XmlDocument document) {
+    for (final p in document.findAllElements('w:p')) {
+      final pPr = p.findElements('w:pPr').firstOrNull;
+      if (pPr == null) continue;
+      final pBdr = pPr.findElements('w:pBdr').firstOrNull;
+      if (pBdr == null) continue;
+
+      // Case 1: The paragraph contains drawings or pictures
+      final hasImages = p.findAllElements('w:drawing').isNotEmpty || p.findAllElements('w:pict').isNotEmpty;
+      if (hasImages) {
+        pBdr.parent?.children.remove(pBdr);
+        continue;
+      }
+
+      // Case 2: Remove bottom/top borders if they are nil
+      final bottom = pBdr.findElements('w:bottom').firstOrNull;
+      if (bottom != null && bottom.getAttribute('w:val') == 'nil') {
+        pBdr.children.remove(bottom);
+      }
+      final top = pBdr.findElements('w:top').firstOrNull;
+      if (top != null && top.getAttribute('w:val') == 'nil') {
+        pBdr.children.remove(top);
+      }
+
+      // If pBdr has no children left of type XmlElement, remove it entirely
+      if (pBdr.children.whereType<XmlElement>().isEmpty) {
+        pBdr.parent?.children.remove(pBdr);
+      }
+    }
   }
 
   void _mergeAdjacentRuns(XmlDocument document) {
