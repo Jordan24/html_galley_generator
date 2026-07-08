@@ -328,7 +328,32 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
 
   Future<void> _processFile(File file) async {
     print('--- _processFile called with path: ${file.path} ---');
-    setState(() => _selectedPdf = file);
+    setState(() {
+      _selectedPdf = file;
+      _titleCtrl.clear();
+      _authorFullNameCtrl.clear();
+      _authorFirstNameCtrl.clear();
+      _authorLastNameCtrl.clear();
+      _authorOrcidCtrl.clear();
+      _authorAffiliationCtrl.clear();
+      _authorBioQuill.document = Document();
+      _volumeCtrl.clear();
+      _issueCtrl.clear();
+      _issueViewIdCtrl.clear();
+      _pdfGalleyIdCtrl.clear();
+      _articleIdCtrl.clear();
+      _submissionIdCtrl.clear();
+      _publishedDateCtrl.clear();
+      _issuedDateCtrl.clear();
+      _publishedDateMonYYYYCtrl.clear();
+      _publishYearCtrl.clear();
+      _submittedDateCtrl.clear();
+      _modifiedDateCtrl.clear();
+      _titleMainCtrl.clear();
+      _keywordsCtrl.clear();
+      _articleBodyCtrl.clear();
+      _articleAbstract = '';
+    });
     try {
       ArticleMetadata metadata;
       if (file.path.toLowerCase().endsWith('.pdf')) {
@@ -376,6 +401,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     } catch (e, stack) {
       debugPrint('Failed to parse document: $e\n$stack');
       _showSnackBar('Failed to parse document: $e');
+      setState(() {
+        _selectedPdf = null;
+      });
     }
   }
 

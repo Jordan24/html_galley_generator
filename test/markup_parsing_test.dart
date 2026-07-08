@@ -69,5 +69,18 @@ void main() {
       expect(metadata.articleBody, contains('<h2><b>Introduction</b></h2>'));
       expect(metadata.articleBody, contains('<h2><i>A. Map Library: Cartographic Constructions of Asia</i></h2>'));
     });
+
+    test('DOCX parser parses paragraph indentation from existing styled document', () async {
+      final file = File('/Users/jordan/Code/Projects/html_galleys/html_galley_generator/assets/[STYLED] CHEUNG Kin_Transnational Asia_V8I1_A Chinese American Node of Healing.docx');
+      expect(file.existsSync(), true);
+
+      final parser = DocxParserService();
+      final metadata = await parser.parse(file);
+
+      // Verify paragraphs 55 and 61 are formatted as blockquotes with margin-left: 36.0pt; styling preserved
+      expect(metadata.articleBody, contains('<blockquote style="margin-left: 36.0pt;">'));
+      expect(metadata.articleBody, contains('My father’s innovative take on this practice'));
+      expect(metadata.articleBody, contains('the lay Buddhist Huiguang invented'));
+    });
   });
 }
