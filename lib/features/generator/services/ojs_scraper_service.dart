@@ -13,6 +13,7 @@ class OjsScrapeResult {
   final String? modifiedDate;
   final String? volume;
   final String? issue;
+  final String? publicationId;
 
   OjsScrapeResult({
     this.pdfGalleyId,
@@ -26,6 +27,7 @@ class OjsScrapeResult {
     this.modifiedDate,
     this.volume,
     this.issue,
+    this.publicationId,
   });
 }
 
@@ -60,11 +62,17 @@ class OjsScraperService {
     String? modifiedDate;
     String? volume;
     String? issue;
+    String? publicationId;
 
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final document = parse(response.body);
+
+        final pubIdMatch = RegExp(r'publicationId=(\d+)').firstMatch(response.body);
+        if (pubIdMatch != null) {
+          publicationId = pubIdMatch.group(1);
+        }
 
         String? metaCitationDate;
         String? metaDcDateCreated;
@@ -214,6 +222,7 @@ class OjsScraperService {
       modifiedDate: modifiedDate,
       volume: volume,
       issue: issue,
+      publicationId: publicationId,
     );
   }
 }

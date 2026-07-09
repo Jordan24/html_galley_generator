@@ -7,7 +7,6 @@ class JournalSettings {
   final String journalDoiId;
   final String journalOrganizationUrl;
   final String supportingOrganization;
-  final String publicationId;
 
   const JournalSettings({
     this.journalBaseUrl = 'https://transnationalasia.rice.edu',
@@ -18,7 +17,6 @@ class JournalSettings {
     this.journalDoiId = '10.25615',
     this.journalOrganizationUrl = 'https://chaocenter.rice.edu/',
     this.supportingOrganization = 'Journal hosting supported by Fondren Library, Rice University.',
-    this.publicationId = '',
   });
 
   JournalSettings copyWith({
@@ -30,7 +28,6 @@ class JournalSettings {
     String? journalDoiId,
     String? journalOrganizationUrl,
     String? supportingOrganization,
-    String? publicationId,
   }) {
     return JournalSettings(
       journalBaseUrl: journalBaseUrl ?? this.journalBaseUrl,
@@ -41,7 +38,6 @@ class JournalSettings {
       journalDoiId: journalDoiId ?? this.journalDoiId,
       journalOrganizationUrl: journalOrganizationUrl ?? this.journalOrganizationUrl,
       supportingOrganization: supportingOrganization ?? this.supportingOrganization,
-      publicationId: publicationId ?? this.publicationId,
     );
   }
 }

@@ -128,7 +128,8 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _journalPathCtrl.text.isNotEmpty &&
         (_pdfGalleyIdCtrl.text.isEmpty || 
          _issueViewIdCtrl.text.isEmpty || 
-         _authorAffiliationCtrl.text.isEmpty) &&
+         _authorAffiliationCtrl.text.isEmpty ||
+         _publicationIdCtrl.text.isEmpty) &&
         !_isScraping) {
       _autoFillScrapedIds();
     }
@@ -166,6 +167,9 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         }
         if (result.authorAffiliation != null && _authorAffiliationCtrl.text.isEmpty) {
           _authorAffiliationCtrl.text = result.authorAffiliation!;
+        }
+        if (result.publicationId != null) {
+          _publicationIdCtrl.text = result.publicationId!;
         }
         if (result.volume != null && isDefaultOrEmpty(_volumeCtrl.text, '7')) {
           _volumeCtrl.text = result.volume!;
@@ -284,6 +288,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       issue: _issueCtrl.text,
       articleId: _articleIdCtrl.text,
       submissionId: _submissionIdCtrl.text,
+      publicationId: _publicationIdCtrl.text,
       issueViewId: _issueViewIdCtrl.text,
       pdfGalleyId: _pdfGalleyIdCtrl.text,
       publishedDate: _publishedDateCtrl.text,
@@ -308,7 +313,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     journalDoiId: _journalDoiIdCtrl.text,
     journalOrganizationUrl: _journalOrganizationUrlCtrl.text,
     supportingOrganization: _supportingOrganizationCtrl.text,
-    publicationId: _publicationIdCtrl.text,
   );
 
   Future<void> _loadSettings() async {
@@ -322,7 +326,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       _journalDoiIdCtrl.text = settings.journalDoiId;
       _journalOrganizationUrlCtrl.text = settings.journalOrganizationUrl;
       _supportingOrganizationCtrl.text = settings.supportingOrganization;
-      _publicationIdCtrl.text = settings.publicationId;
     });
   }
 
@@ -343,6 +346,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       _pdfGalleyIdCtrl.clear();
       _articleIdCtrl.clear();
       _submissionIdCtrl.clear();
+      _publicationIdCtrl.clear();
       _publishedDateCtrl.clear();
       _issuedDateCtrl.clear();
       _publishedDateMonYYYYCtrl.clear();
@@ -489,6 +493,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       issueCtrl: _issueCtrl,
       articleIdCtrl: _articleIdCtrl,
       submissionIdCtrl: _submissionIdCtrl,
+      publicationIdCtrl: _publicationIdCtrl,
       issueViewIdCtrl: _issueViewIdCtrl,
       pdfGalleyIdCtrl: _pdfGalleyIdCtrl,
       publishedDateCtrl: _publishedDateCtrl,
@@ -511,7 +516,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       journalDoiIdCtrl: _journalDoiIdCtrl,
       journalOrganizationUrlCtrl: _journalOrganizationUrlCtrl,
       supportingOrganizationCtrl: _supportingOrganizationCtrl,
-      publicationIdCtrl: _publicationIdCtrl,
     );
 
     if (isWide) {

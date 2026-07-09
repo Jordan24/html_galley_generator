@@ -9,6 +9,7 @@ class ArticleMetadataForm extends StatelessWidget {
     required this.issueCtrl,
     required this.articleIdCtrl,
     required this.submissionIdCtrl,
+    required this.publicationIdCtrl,
     required this.issueViewIdCtrl,
     required this.pdfGalleyIdCtrl,
     required this.publishedDateCtrl,
@@ -27,6 +28,7 @@ class ArticleMetadataForm extends StatelessWidget {
   final TextEditingController issueCtrl;
   final TextEditingController articleIdCtrl;
   final TextEditingController submissionIdCtrl;
+  final TextEditingController publicationIdCtrl;
   final TextEditingController issueViewIdCtrl;
   final TextEditingController pdfGalleyIdCtrl;
   final TextEditingController publishedDateCtrl;
@@ -92,6 +94,13 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Submission ID',
                     controller: submissionIdCtrl,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: LabeledTextField(
+                    label: 'Publication ID',
+                    controller: publicationIdCtrl,
                   ),
                 ),
                 const SizedBox(width: 16),

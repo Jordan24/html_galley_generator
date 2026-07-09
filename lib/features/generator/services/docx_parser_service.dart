@@ -120,6 +120,24 @@ class DocxParserService {
     var cleanMarkdown = markdown.replaceAll(RegExp(r'''<a\s+id=["'][\w\d]+["']>\s*</a>'''), '');
     cleanMarkdown = _cleanMarkdownLinks(cleanMarkdown);
 
+    // 1.5. Clean image alt texts: remove newlines and AI disclaimers from markdown image alt texts before paragraph splitting
+    cleanMarkdown = cleanMarkdown.replaceAllMapped(
+      RegExp(r'!\[([^\]]*)\]\(([^)]+)\)'),
+      (match) {
+        var altText = match.group(1)!;
+        final imageUrl = match.group(2)!;
+        
+        // Remove known AI-generated content disclaimers
+        altText = altText.replaceAll(RegExp(r'\bAI-generated content may be incorrect\.?', caseSensitive: false), '');
+        altText = altText.replaceAll(RegExp(r'\bDescription automatically generated\.?', caseSensitive: false), '');
+        
+        // Clean up newlines, carriage returns, and excess whitespace
+        altText = altText.replaceAll(RegExp(r'[\r\n]+'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+        
+        return '![$altText]($imageUrl)';
+      },
+    );
+
     // 2. Extract Footnotes
     final footnotesMap = <String, String>{};
     final fnDefRegex = RegExp(r'^\[\^([^\]]+)\]:\s*(.*)$', multiLine: true);

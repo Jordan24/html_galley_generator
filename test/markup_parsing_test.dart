@@ -82,5 +82,20 @@ void main() {
       expect(metadata.articleBody, contains('My father’s innovative take on this practice'));
       expect(metadata.articleBody, contains('the lay Buddhist Huiguang invented'));
     });
+
+    test('DOCX parser handles AI-generated image alt texts and newlines', () async {
+      final file = File('/Users/jordan/Code/Projects/html_galleys/html_galley_generator/assets/[STYLED] PARK Sandra_Transnational Asia_V8I1_Conversion and Making the Anticommunist Body of Christ during the Korean War.docx');
+      expect(file.existsSync(), true);
+
+      final parser = DocxParserService();
+      final metadata = await parser.parse(file);
+
+      // Verify that image tags are correctly converted to HTML and disclaimers are removed
+      expect(metadata.articleBody, contains('<img src="data:image/'));
+      expect(metadata.articleBody, contains('alt="A close-up of a sign"'));
+      expect(metadata.articleBody, contains('alt="A plaque with a cross and a star"'));
+      expect(metadata.articleBody, isNot(contains('AI-generated content may be incorrect')));
+      expect(metadata.articleBody, isNot(contains('Description automatically generated')));
+    });
   });
 }

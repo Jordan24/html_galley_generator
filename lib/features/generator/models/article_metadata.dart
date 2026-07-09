@@ -11,6 +11,7 @@ class ArticleMetadata {
   final String issue;
   final String articleId; // OJS submission/article ID (e.g. 113)
   final String submissionId; // Same as articleId typically
+  final String publicationId; // OJS publication ID (e.g. 119)
   final String issueViewId; // OJS issue view ID (e.g. 15)
   final String pdfGalleyId; // OJS galley/file ID for the PDF download (e.g. 191)
   final String publishedDate; // ISO8601 e.g. 2025-10-31
@@ -23,7 +24,7 @@ class ArticleMetadata {
   final String articleBody; // Full article body HTML content (includes abstract, keywords, bib, footnotes)
   final String titleMain; // Typically same as journalName or similar
   final String articleAbstract; // Plain text abstract for meta tags
-
+ 
   const ArticleMetadata({
     this.title = '',
     this.author = '',
@@ -37,6 +38,7 @@ class ArticleMetadata {
     this.issue = '',
     this.articleId = '',
     this.submissionId = '',
+    this.publicationId = '',
     this.issueViewId = '',
     this.pdfGalleyId = '',
     this.publishedDate = '',
@@ -64,6 +66,7 @@ class ArticleMetadata {
     String? issue,
     String? articleId,
     String? submissionId,
+    String? publicationId,
     String? issueViewId,
     String? pdfGalleyId,
     String? publishedDate,
@@ -90,6 +93,7 @@ class ArticleMetadata {
       issue: issue ?? this.issue,
       articleId: articleId ?? this.articleId,
       submissionId: submissionId ?? this.submissionId,
+      publicationId: publicationId ?? this.publicationId,
       issueViewId: issueViewId ?? this.issueViewId,
       pdfGalleyId: pdfGalleyId ?? this.pdfGalleyId,
       publishedDate: publishedDate ?? this.publishedDate,
