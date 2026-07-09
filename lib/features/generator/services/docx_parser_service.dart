@@ -265,6 +265,7 @@ class DocxParserService {
         }
         if (content.trim().isNotEmpty) {
           keywordsMarkdownParagraphs.add(indentMarker + content.trim());
+          collectingKeywords = false;
         }
         continue;
       }
@@ -278,6 +279,7 @@ class DocxParserService {
           collectingKeywords = false;
         } else {
           keywordsMarkdownParagraphs.add(p);
+          collectingKeywords = false;
         }
       }
     }
@@ -431,6 +433,12 @@ class DocxParserService {
       if (isKeywordsHeader || startsWithKeywords) {
         inKeywordsSection = true;
         inAbstractSection = false;
+        if (startsWithKeywords) {
+          final content = cleanTrimmed.replaceFirst(RegExp(r'^[\s#*_]*keywords[:\s#*_]*', caseSensitive: false), '');
+          if (content.trim().isNotEmpty) {
+            inKeywordsSection = false;
+          }
+        }
         continue;
       }
       
@@ -446,6 +454,7 @@ class DocxParserService {
         if (cleanTrimmed.startsWith('#')) {
           inKeywordsSection = false;
         } else {
+          inKeywordsSection = false;
           continue;
         }
       }

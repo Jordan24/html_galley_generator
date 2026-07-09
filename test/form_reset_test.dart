@@ -76,7 +76,7 @@ void main() {
     expect(dropZoneFinder, findsOneWidget);
     final dropZone = tester.widget<DropZone>(dropZoneFinder);
 
-    final docxFile = File('assets/[STYLED] CHEUNG Kin_Transnational Asia_V8I1_A Chinese American Node of Healing.docx');
+    final docxFile = File('assets/[STYLED] NOH Minjung_Transnational Asia_V8I1_Transnational Politics and Korean Evangelicalism.docx');
     expect(docxFile.existsSync(), isTrue);
 
     // Call onFilePicked
@@ -98,8 +98,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // 3. Verify that the new metadata is populated correctly
-    expect(getTextFieldText(tester, 'Article Title'), contains('A Chinese American Node of Healing'));
-    expect(getTextFieldText(tester, 'Full Name'), 'Kin Cheung');
+    expect(getTextFieldText(tester, 'Article Title'), contains('Transnational Politics'));
+    expect(getTextFieldText(tester, 'Full Name'), 'Minjung Noh');
     expect(getTextFieldText(tester, 'Volume'), '8');
     expect(getTextFieldText(tester, 'Issue'), '1');
 

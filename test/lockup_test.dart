@@ -10,7 +10,8 @@ import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart' as vsc;
 
 void main() {
   test('Full HTML to Delta conversion test (DOCX)', () async {
-    final file = File('/Users/jordan/Code/Projects/html_galleys/Collins_Styled.docx');
+    final file = File('/Users/jordan/Code/Projects/html_galleys/html_galley_generator/assets/[STYLED] NOH Minjung_Transnational Asia_V8I1_Transnational Politics and Korean Evangelicalism.docx');
+    expect(file.existsSync(), true);
     final parser = DocxParserService();
     final metadata = await parser.parse(file);
     const settings = JournalSettings(
@@ -104,10 +105,10 @@ void main() {
     final fullHtml = await htmlGenerator.buildFullHtml(simulatedEditorContent, metadata, settings);
 
     // Verify IDs are successfully restored and target="_blank" is stripped for internal links
-    expect(fullHtml, contains('<sup id="ref1"><a href="#fn1">[1]</a></sup>'));
-    expect(fullHtml, contains('<sup id="ref2"><a href="#fn2">[2]</a></sup>'));
-    expect(fullHtml, contains('<p id="fn1"><a href="#ref1">[1]</a>'));
-    expect(fullHtml, contains('<p id="fn2"><a href="#ref2">[2]</a>'));
+    expect(fullHtml, contains('<sup id="ref1"><a href="#fn1" target="_self">[1]</a></sup>'));
+    expect(fullHtml, contains('<sup id="ref2"><a href="#fn2" target="_self">[2]</a></sup>'));
+    expect(fullHtml, contains('<p id="fn1"><a href="#ref1" target="_self">[1]</a>'));
+    expect(fullHtml, contains('<p id="fn2"><a href="#ref2" target="_self">[2]</a>'));
     expect(fullHtml, isNot(contains('href="#fn1" target="_blank"')));
     expect(fullHtml, isNot(contains('target="_blank" href="#fn1"')));
     expect(fullHtml, isNot(contains('href="#ref1" target="_blank"')));

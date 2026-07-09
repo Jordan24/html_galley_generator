@@ -83,48 +83,50 @@ class _DropZoneState extends State<DropZone> {
                 ),
               ],
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.upload_file, size: 48, color: Colors.blueGrey[400]),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text.rich(
-                    TextSpan(
-                      text: widget.selectedPdf != null
-                          ? 'Loaded: ${widget.selectedPdf!.path.split(Platform.pathSeparator).last}'
-                          : 'Drag and drop PDF or DOCX to start, or ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.blueGrey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                      children: [
-                        if (widget.selectedPdf == null) ...[
-                          const TextSpan(
-                            text: 'click to browse',
-                            style: TextStyle(
-                              color: Color(0xFF1D2B3E),
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.upload_file, size: 48, color: Colors.blueGrey[400]),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text.rich(
+                      TextSpan(
+                        text: widget.selectedPdf != null
+                            ? 'Loaded: ${widget.selectedPdf!.path.split(Platform.pathSeparator).last}'
+                            : 'Drag and drop PDF or DOCX to start, or ',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.blueGrey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                        children: [
+                          if (widget.selectedPdf == null) ...[
+                            const TextSpan(
+                              text: 'click to browse',
+                              style: TextStyle(
+                                color: Color(0xFF1D2B3E),
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
                             ),
-                          ),
-                          const TextSpan(text: '.'),
+                            const TextSpan(text: '.'),
+                          ],
                         ],
-                      ],
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
-                if (widget.selectedPdf != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Drag a new file or click here to browse',
-                    style: TextStyle(fontSize: 13, color: Colors.blueGrey[500]),
-                  ),
+                  if (widget.selectedPdf != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Drag a new file or click here to browse',
+                      style: TextStyle(fontSize: 13, color: Colors.blueGrey[500]),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

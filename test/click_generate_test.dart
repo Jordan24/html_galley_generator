@@ -36,7 +36,7 @@ void main() {
     final dropZone = tester.widget<DropZone>(dropZoneFinder);
     
     print('Invoking onFilePicked on DropZone inside runAsync...');
-    final file = File('/Users/jordan/Code/Projects/html_galleys/Collins_Styled.docx');
+    final file = File('/Users/jordan/Code/Projects/html_galleys/html_galley_generator/assets/[STYLED] NOH Minjung_Transnational Asia_V8I1_Transnational Politics and Korean Evangelicalism.docx');
     
     await tester.runAsync(() async {
       dropZone.onFilePicked(file);
@@ -49,7 +49,7 @@ void main() {
     
     // Check if form is populated by looking for some text
     final titleFieldFinder = find.byWidgetPredicate(
-      (widget) => widget is TextField && widget.controller?.text.contains('Archives as Bridges') == true,
+      (widget) => widget is TextField && widget.controller?.text.contains('Transnational Politics') == true,
     );
     expect(titleFieldFinder, findsAtLeastNWidgets(1));
     print('Found populated Title fields!');
