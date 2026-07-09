@@ -165,8 +165,11 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         if (result.issueViewId != null && _issueViewIdCtrl.text.isEmpty) {
           _issueViewIdCtrl.text = result.issueViewId!;
         }
-        if (result.authorAffiliation != null && _authorAffiliationCtrl.text.isEmpty) {
+        if (result.authorAffiliation != null && result.authorAffiliation!.isNotEmpty) {
           _authorAffiliationCtrl.text = result.authorAffiliation!;
+        }
+        if (result.authorOrcid != null && _authorOrcidCtrl.text.isEmpty) {
+          _authorOrcidCtrl.text = result.authorOrcid!;
         }
         if (result.publicationId != null) {
           _publicationIdCtrl.text = result.publicationId!;
@@ -379,10 +382,14 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         _authorOrcidCtrl.text = metadata.authorOrcid;
         _authorAffiliationCtrl.text = metadata.authorAffiliation;
 
-        final bioDelta = HtmlToDelta(
-          shouldInsertANewLine: (localName) => localName == 'p' || localName == 'blockquote',
-        ).convert(metadata.authorBio);
-        _authorBioQuill.document = Document.fromDelta(bioDelta);
+        if (metadata.authorBio.isNotEmpty) {
+          final bioDelta = HtmlToDelta(
+            shouldInsertANewLine: (localName) => localName == 'p' || localName == 'blockquote',
+          ).convert(metadata.authorBio);
+          _authorBioQuill.document = Document.fromDelta(bioDelta);
+        } else {
+          _authorBioQuill.document = Document();
+        }
 
         _volumeCtrl.text = metadata.volume;
         _issueCtrl.text = metadata.issue;

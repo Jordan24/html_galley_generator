@@ -33,28 +33,11 @@ class _AuthorMetadataFormState extends State<AuthorMetadataForm> {
   @override
   void initState() {
     super.initState();
-    widget.authorFullNameCtrl.addListener(_onNameChanged);
   }
 
   @override
   void dispose() {
-    widget.authorFullNameCtrl.removeListener(_onNameChanged);
     super.dispose();
-  }
-
-  void _onNameChanged() {
-    if (!_isSearchingOrcid &&
-        widget.authorFullNameCtrl.text.isNotEmpty &&
-        widget.authorOrcidCtrl.text.isEmpty) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted &&
-            !_isSearchingOrcid &&
-            widget.authorFullNameCtrl.text.isNotEmpty &&
-            widget.authorOrcidCtrl.text.isEmpty) {
-          _lookupOrcid();
-        }
-      });
-    }
   }
 
   Future<void> _lookupOrcid() async {

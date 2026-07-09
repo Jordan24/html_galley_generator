@@ -14,6 +14,7 @@ class OjsScrapeResult {
   final String? volume;
   final String? issue;
   final String? publicationId;
+  final String? authorOrcid;
 
   OjsScrapeResult({
     this.pdfGalleyId,
@@ -28,6 +29,7 @@ class OjsScrapeResult {
     this.volume,
     this.issue,
     this.publicationId,
+    this.authorOrcid,
   });
 }
 
@@ -63,6 +65,7 @@ class OjsScraperService {
     String? volume;
     String? issue;
     String? publicationId;
+    String? authorOrcid;
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -203,6 +206,15 @@ class OjsScraperService {
                   issueViewId = segments.last;
                 }
               }
+            } else if (href.contains('orcid.org')) {
+              final uri = Uri.parse(href);
+              final segments = uri.pathSegments;
+              if (segments.isNotEmpty) {
+                final lastSegment = segments.last.trim();
+                if (RegExp(r'^\d{4}-\d{4}-\d{4}-[\dX]{4}$').hasMatch(lastSegment)) {
+                  authorOrcid = lastSegment;
+                }
+              }
             }
           }
         }
@@ -223,6 +235,7 @@ class OjsScraperService {
       volume: volume,
       issue: issue,
       publicationId: publicationId,
+      authorOrcid: authorOrcid,
     );
   }
 }

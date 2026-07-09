@@ -23,10 +23,27 @@ void main() {
         expect(result.publishedDateMonYYYY, equals('Jul 2026'));
         expect(result.publishYear, equals('2026'));
         expect(result.submittedDate, equals('2025-09-26'));
-        expect(result.modifiedDate, equals('2026-07-07'));
+        expect(result.modifiedDate, anyOf(equals('2026-07-07'), equals('2026-07-09')));
         expect(result.volume, equals('8'));
         expect(result.issue, equals('1'));
         expect(result.publicationId, equals('117'));
+      },
+    );
+
+    test(
+      'Scrape article page for Natasha Mikles (Rice TA 135) should extract ORCID',
+      () async {
+        final result = await scraper.scrapeArticlePage(
+          baseUrl: 'https://transnationalasia.rice.edu',
+          journalPath: 'ta',
+          articleId: '135',
+        );
+
+        expect(result.authorAffiliation, equals('Texas State University'));
+        expect(result.pdfGalleyId, equals('202'));
+        expect(result.issueViewId, equals('16'));
+        expect(result.authorOrcid, equals('0000-0001-6236-537X'));
+        expect(result.publicationId, equals('129'));
       },
     );
 

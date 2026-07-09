@@ -322,7 +322,21 @@ class DocxParserService {
     String authorBio = '';
     String authorAffiliation = '';
     if (authorFullName.isNotEmpty) {
-      final bioRegex = RegExp('[*_]*${RegExp.escape(authorFullName)}[*_]*\\s+is\\s+', caseSensitive: false);
+      final authorParts = authorFullName.trim().split(RegExp(r'\s+'));
+      final authorFirstName = authorParts.isNotEmpty ? authorParts.first : '';
+      final authorLastName = authorParts.length > 1 ? authorParts.last : '';
+      
+      final escapedFullName = RegExp.escape(authorFullName);
+      final escapedFirstLast = authorLastName.isNotEmpty 
+          ? '${RegExp.escape(authorFirstName)}\\s+${RegExp.escape(authorLastName)}'
+          : '';
+      
+      final bioPatterns = [
+        '[^\\w]*$escapedFullName[\\s*_]+is\\b',
+        if (escapedFirstLast.isNotEmpty) '[\\s*_]*$escapedFirstLast[\\s*_]+is\\b',
+      ];
+      
+      final bioRegex = RegExp(bioPatterns.join('|'), caseSensitive: false);
       for (final p in paragraphs) {
         if (bioRegex.hasMatch(p)) {
            final robustP = _convertMarkdownToHtmlRobustly(p);
