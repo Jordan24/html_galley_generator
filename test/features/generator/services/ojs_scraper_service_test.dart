@@ -1,14 +1,39 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:html_galley_generator/features/generator/services/ojs_scraper_service.dart';
 
 void main() {
   group('OjsScraperService Tests', () {
-    final scraper = OjsScraperService();
-
     test(
       'Scrape article page for Justin B. Stein (Rice TA 123) should extract affiliation, pdfGalleyId, and issueViewId',
       () async {
-        // This test performs a real network request.
+        final mockClient = MockClient((request) async {
+          expect(request.url.toString(), 'https://transnationalasia.rice.edu/index.php/ta/article/view/123');
+          
+          final html = '''
+<html>
+  <head>
+    <meta name="citation_author_institution" content="Kwantlen Polytechnic University" />
+    <meta name="citation_date" content="2026-07-06" />
+    <meta name="DC.Date.created" content="2026-07-06" />
+    <meta name="DC.Date.issued" content="2026-07-06" />
+    <meta name="DC.Date.dateSubmitted" content="2025-09-26" />
+    <meta name="DC.Date.modified" content="2026-07-07" />
+    <meta name="citation_volume" content="8" />
+    <meta name="citation_issue" content="1" />
+  </head>
+  <body>
+    <!-- publicationId=117 -->
+    <a href="https://transnationalasia.rice.edu/index.php/ta/article/view/123/200" class="pdf">PDF</a>
+    <a href="https://transnationalasia.rice.edu/index.php/ta/issue/view/16">Vol. 8 No. 1 (2026)</a>
+  </body>
+</html>
+''';
+          return http.Response(html, 200);
+        });
+
+        final scraper = OjsScraperService(client: mockClient);
         final result = await scraper.scrapeArticlePage(
           baseUrl: 'https://transnationalasia.rice.edu',
           journalPath: 'ta',
@@ -23,7 +48,7 @@ void main() {
         expect(result.publishedDateMonYYYY, equals('Jul 2026'));
         expect(result.publishYear, equals('2026'));
         expect(result.submittedDate, equals('2025-09-26'));
-        expect(result.modifiedDate, anyOf(equals('2026-07-07'), equals('2026-07-09')));
+        expect(result.modifiedDate, equals('2026-07-07'));
         expect(result.volume, equals('8'));
         expect(result.issue, equals('1'));
         expect(result.publicationId, equals('117'));
@@ -33,6 +58,26 @@ void main() {
     test(
       'Scrape article page for Natasha Mikles (Rice TA 135) should extract ORCID',
       () async {
+        final mockClient = MockClient((request) async {
+          expect(request.url.toString(), 'https://transnationalasia.rice.edu/index.php/ta/article/view/135');
+          
+          final html = '''
+<html>
+  <head>
+    <meta name="citation_author_institution" content="Texas State University" />
+  </head>
+  <body>
+    <!-- publicationId=129 -->
+    <a href="https://transnationalasia.rice.edu/index.php/ta/article/view/135/202" class="pdf">PDF</a>
+    <a href="https://transnationalasia.rice.edu/index.php/ta/issue/view/16">Vol. 8 No. 1 (2026)</a>
+    <a href="https://orcid.org/0000-0001-6236-537X">ORCID</a>
+  </body>
+</html>
+''';
+          return http.Response(html, 200);
+        });
+
+        final scraper = OjsScraperService(client: mockClient);
         final result = await scraper.scrapeArticlePage(
           baseUrl: 'https://transnationalasia.rice.edu',
           journalPath: 'ta',
@@ -48,6 +93,11 @@ void main() {
     );
 
     test('Scrape with non-existent article should return null/empty values', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('<html><body>Not Found</body></html>', 404);
+      });
+
+      final scraper = OjsScraperService(client: mockClient);
       final result = await scraper.scrapeArticlePage(
         baseUrl: 'https://transnationalasia.rice.edu',
         journalPath: 'ta',
@@ -59,6 +109,7 @@ void main() {
     });
 
     test('Scrape with empty inputs should return empty scrape result', () async {
+      final scraper = OjsScraperService();
       final result = await scraper.scrapeArticlePage(
         baseUrl: '',
         journalPath: '',

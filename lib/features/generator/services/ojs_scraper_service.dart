@@ -34,6 +34,10 @@ class OjsScrapeResult {
 }
 
 class OjsScraperService {
+  final http.Client _client;
+
+  OjsScraperService({http.Client? client}) : _client = client ?? http.Client();
+
   /// Fetches the article view page and extracts the PDF galley ID, Issue View ID, Author Affiliation, and dates.
   /// The URL is constructed as: {baseUrl}/index.php/{journalPath}/article/view/{articleId}
   /// The pdfGalleyId is the last part of the URL the PDF button links to.
@@ -68,7 +72,7 @@ class OjsScraperService {
     String? authorOrcid;
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await _client.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final document = parse(response.body);
 

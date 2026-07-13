@@ -22,7 +22,6 @@ class HtmlGalleyGeneratorApp extends StatelessWidget {
         Locale('en', 'US'),
       ],
       theme: ThemeData(
-        useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF334155),
           surface: const Color(0xFFF7F9FB),

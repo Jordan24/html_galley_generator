@@ -368,7 +368,7 @@ class QuillImageEmbedBuilder extends EmbedBuilder {
 
   @override
   Widget build(BuildContext context, EmbedContext embedContext) {
-    final String data = embedContext.node.value.data;
+    final String data = embedContext.node.value.data as String;
     
     Widget imageWidget;
     if (data.startsWith('data:image/')) {

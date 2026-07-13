@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class OrcidService {
+  final http.Client _client;
+
+  OrcidService({http.Client? client}) : _client = client ?? http.Client();
+
   /// Searches for an ORCID ID by author name and optional affiliation.
   /// Returns the first ORCID ID found, or null.
   Future<String?> findOrcid(String fullName, {String? affiliation}) async {
@@ -28,7 +32,7 @@ class OrcidService {
 
     try {
       final uri = Uri.https('pub.orcid.org', '/v3.0/search', {'q': query});
-      final response = await http.get(
+      final response = await _client.get(
         uri,
         headers: {'Accept': 'application/json'},
       );
@@ -39,10 +43,10 @@ class OrcidService {
 
         if (results != null && results.isNotEmpty) {
           // Return the first match's ORCID
-          final firstMatch = results.first;
-          final orcidIdentifier = firstMatch['orcid-identifier'];
+          final firstMatch = results.first as Map;
+          final orcidIdentifier = firstMatch['orcid-identifier'] as Map?;
           if (orcidIdentifier != null) {
-            return orcidIdentifier['path'];
+            return orcidIdentifier['path'] as String?;
           }
         }
       }
@@ -61,7 +65,7 @@ class OrcidService {
         final broadUri = Uri.https('pub.orcid.org', '/v3.0/search', {
           'q': name,
         });
-        final response = await http.get(
+        final response = await _client.get(
           broadUri,
           headers: {'Accept': 'application/json'},
         );
@@ -69,7 +73,9 @@ class OrcidService {
           final data = json.decode(response.body);
           final results = data['result'] as List?;
           if (results != null && results.isNotEmpty) {
-            return results.first['orcid-identifier']?['path'];
+            final firstMatch = results.first as Map;
+            final orcidIdentifier = firstMatch['orcid-identifier'] as Map?;
+            return orcidIdentifier?['path'] as String?;
           }
         }
       } catch (_) {}

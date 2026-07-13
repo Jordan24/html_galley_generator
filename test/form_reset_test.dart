@@ -7,6 +7,40 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:html_galley_generator/features/generator/screens/generator_screen.dart';
 import 'package:html_galley_generator/features/generator/widgets/drop_zone.dart';
 import 'package:html_galley_generator/features/generator/widgets/labeled_text_field.dart';
+import 'package:html_galley_generator/features/generator/services/docx_parser_service.dart';
+import 'package:html_galley_generator/features/generator/models/article_metadata.dart';
+
+class FakeDocxParser extends Fake implements DocxParserService {
+  @override
+  Future<ArticleMetadata> parse(File file) async {
+    return ArticleMetadata(
+      title: 'Transnational Politics and Korean Evangelicalism: Affective Infrastructure and History',
+      author: 'NOH',
+      authorFullName: 'Minjung Noh',
+      authorFirstName: 'Minjung',
+      authorLastName: 'Noh',
+      keywords: 'Korean Evangelicalism',
+      articleAbstract: 'This article examines the political resonance of contemporary Korean evangelicalism...',
+      articleBody: '<p>This is a simulated body of the article containing Transnational Politics...</p>',
+      authorOrcid: '',
+      authorAffiliation: '',
+      authorBio: '',
+      volume: '8',
+      issue: '1',
+      articleId: '101',
+      submissionId: '101',
+      issueViewId: '',
+      pdfGalleyId: '',
+      publishedDate: '',
+      issuedDate: '',
+      publishedDateMonYYYY: '',
+      publishYear: '',
+      submittedDate: '',
+      modifiedDate: '',
+      titleMain: 'Transnational Politics and Korean Evangelicalism',
+    );
+  }
+}
 
 void main() {
   setUp(() {
@@ -29,6 +63,8 @@ void main() {
   }
 
   testWidgets('Reset form and clear previous metadata when new file is processed', (WidgetTester tester) async {
+    final fakeDocxParser = FakeDocxParser();
+
     // Set a larger physical size to avoid overflow warnings
     tester.view.physicalSize = const Size(1400, 1080);
     tester.view.devicePixelRatio = 1.0;
@@ -39,17 +75,17 @@ void main() {
 
     // Build the GeneratorScreen widget
     await tester.pumpWidget(
-      const MaterialApp(
-        localizationsDelegates: [
+      MaterialApp(
+        localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
           FlutterQuillLocalizations.delegate,
         ],
-        supportedLocales: [
+        supportedLocales: const [
           Locale('en', 'US'),
         ],
-        home: GeneratorScreen(),
+        home: GeneratorScreen(docxParser: fakeDocxParser),
       ),
     );
 
@@ -76,8 +112,7 @@ void main() {
     expect(dropZoneFinder, findsOneWidget);
     final dropZone = tester.widget<DropZone>(dropZoneFinder);
 
-    final docxFile = File('assets/[STYLED] NOH Minjung_Transnational Asia_V8I1_Transnational Politics and Korean Evangelicalism.docx');
-    expect(docxFile.existsSync(), isTrue);
+    final docxFile = File('dummy.docx');
 
     // Call onFilePicked
     await tester.runAsync(() async {
@@ -92,7 +127,7 @@ void main() {
       expect(getTextFieldText(tester, 'Full Name'), '');
 
       // Wait for the asynchronous parsing task to finish
-      await Future.delayed(const Duration(seconds: 4));
+      await Future<void>.delayed(const Duration(seconds: 4));
     });
 
     await tester.pumpAndSettle();

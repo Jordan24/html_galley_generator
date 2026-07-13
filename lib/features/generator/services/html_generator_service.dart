@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import '../models/article_metadata.dart';
 import '../models/journal_settings.dart';
+import '../utils/string_cleaner.dart';
 
 class HtmlGeneratorService {
   String buildFileName(ArticleMetadata metadata) {
@@ -42,7 +43,7 @@ class HtmlGeneratorService {
     // Post-process articleContent to restore/ensure proper footnote back-links and ids
     // 1. Convert any inline footnote citation to the target format: <sup id="ref$id"><a href="#fn$id">[$id]</a></sup>
     var processedContent = articleContent.replaceAllMapped(
-      RegExp(r'(?:<sup[^>]*?>\s*)?<a\s+[^>]*?href="#fn(\d+)"[^>]*?>\s*(?:<[^>]+>)*\s*\[?(\d+)\]?\s*(?:</[^>]+>)*\s*</a>(?:\s*</sup>)?'),
+      RegExp(r'(?:<sup[^>]*?>\s*)?<a\s+[^>]*?href="#fn(\d+)"[^>]*?>\s*(?:<(?:sup|strong|span|em|i|b)[^>]*?>)*\s*\[?(\d+)\]?\s*(?:</(?:sup|strong|span|em|i|b)>)*\s*</a>(?:\s*</sup>)?'),
       (match) {
         final id = match.group(1)!;
         return '<sup id="ref$id"><a href="#fn$id">[$id]</a></sup>';
@@ -51,7 +52,7 @@ class HtmlGeneratorService {
 
     // 2. Convert any footnote paragraph starting link to the target format: <p id="fn$id"><a href="#ref$id">[$id]</a>
     processedContent = processedContent.replaceAllMapped(
-      RegExp(r'<p([^>]*?)>(\s*(?:<[^>]+>)*\s*<a\s+[^>]*?href="#ref(\d+)"[^>]*?>\s*(?:<[^>]+>)*\s*\[?(\d+)\]?\s*(?:</[^>]+>)*\s*</a>)'),
+      RegExp(r'<p([^>]*?)>(\s*(?:<(?:sup|strong|span|em|i|b)[^>]*?>)*\s*<a\s+[^>]*?href="#ref(\d+)"[^>]*?>\s*(?:<(?:sup|strong|span|em|i|b)[^>]*?>)*\s*\[?(\d+)\]?\s*(?:</(?:sup|strong|span|em|i|b)>)*\s*</a>\s*(?:</(?:sup|strong|span|em|i|b)>)*)'),
       (match) {
         final pAttrs = match.group(1)!;
         final id = match.group(3)!;
@@ -188,19 +189,7 @@ class HtmlGeneratorService {
     return list.map((k) => '<meta name="$tagName" xml:lang="en" content="${_clean(k)}"/>').join('\n\t');
   }
 
-  String _clean(String text) {
-    if (text.isEmpty) return '';
-    return text.trim()
-        .replaceAll('\uFFFD', "'")
-        .replaceAll(RegExp(r'[\u2018\u2019\u201A\u201B\u2032\u2035\u02BC\u02BD\u02C8\u02CA\u02CB\u00B4\u0060\u0090\u0091\u0092]'), "'")
-        .replaceAll(RegExp(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u0093\u0094\u00AB\u00BB]'), '"')
-        .replaceAll(RegExp(r'[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]'), '-')
-        .replaceAll('\uFB01', 'fi')
-        .replaceAll('\uFB02', 'fl')
-        .replaceAll(RegExp(r'[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]'), ' ')
-        .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
-        .replaceAll(RegExp(r'\s+'), ' ');
-  }
+  String _clean(String text) => StringCleaner.clean(text);
 
   String _cleanRedundantTags(String html) {
     if (html.isEmpty) return html;

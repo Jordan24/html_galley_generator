@@ -6,6 +6,8 @@ import 'package:xml/xml.dart';
 import 'package:docx_to_markdown/docx_to_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../models/article_metadata.dart';
+import '../utils/string_cleaner.dart';
+import '../utils/docx_metadata_extractor.dart';
 
 class DocxParserService {
   Future<ArticleMetadata> parse(File file) async {
@@ -13,64 +15,15 @@ class DocxParserService {
     final archive = ZipDecoder().decodeBytes(bytes);
 
     // Extract basic metadata: DOI -> articleId, volume, issue from footer/header
-    String articleId = '';
-    String volume = '';
-    String issue = '';
-    for (final zipFile in archive.files) {
-      if (zipFile.name.startsWith('word/footer') || zipFile.name.startsWith('word/header')) {
-        try {
-          final xmlStr = utf8.decode(zipFile.content);
-          final plainText = xmlStr.replaceAll(RegExp(r'<[^>]*>'), '');
-          
-          final volMatch = RegExp(r'Volume\s*(\d+)', caseSensitive: false).firstMatch(plainText);
-          final issMatch = RegExp(r'Issue\s*(\d+)', caseSensitive: false).firstMatch(plainText);
-          if (volMatch != null) {
-            volume = volMatch.group(1)!;
-          }
-          if (issMatch != null) {
-            issue = issMatch.group(1)!;
-          }
-
-          if (plainText.contains('doi.org')) {
-             final doiMatch = RegExp(r'(?:https?://)?doi\.org/[^\s<>"]+').firstMatch(plainText);
-             if (doiMatch != null) {
-               String doiUrl = doiMatch.group(0)!;
-               doiUrl = doiUrl.replaceAll(RegExp(r'[./,;]+$'), '');
-               
-               final doiRegex = RegExp(r'v(\d+)i(\d+)\.(\d+)');
-               final match = doiRegex.firstMatch(doiUrl);
-               if (match != null) {
-                 volume = match.group(1)!;
-                 issue = match.group(2)!;
-                 articleId = match.group(3)!;
-               } else {
-                 final parts = doiUrl.split('.');
-                 if (parts.isNotEmpty) {
-                   final lastPart = parts.last;
-                   if (RegExp(r'^\d+$').hasMatch(lastPart)) {
-                     articleId = lastPart;
-                   }
-                 }
-               }
-             }
-          }
-        } catch (_) {}
-      }
-    }
+    final docProps = DocxMetadataExtractor.extractVolumeIssueArticleId(archive);
+    String articleId = docProps['articleId']!;
+    String volume = docProps['volume']!;
+    String issue = docProps['issue']!;
 
     // Extract fallback Title and Creator from core.xml if needed
-    String fallbackTitle = '';
-    String fallbackCreator = '';
-    final coreXmlFile = archive.findFile('docProps/core.xml');
-    if (coreXmlFile != null) {
-       try {
-         final coreXml = XmlDocument.parse(utf8.decode(coreXmlFile.content));
-         final titleNode = coreXml.findAllElements('dc:title').firstOrNull;
-         if (titleNode != null) fallbackTitle = titleNode.innerText.trim();
-         final creatorNode = coreXml.findAllElements('dc:creator').firstOrNull;
-         if (creatorNode != null) fallbackCreator = creatorNode.innerText.trim();
-       } catch (_) {}
-    }
+    final fallbackProps = DocxMetadataExtractor.extractFallbackProps(archive);
+    String fallbackTitle = fallbackProps['fallbackTitle']!;
+    String fallbackCreator = fallbackProps['fallbackCreator']!;
 
     // Preprocess XML files to clean up spelling error tags and merge adjacent runs with same format
     final modifiedXmls = <String, List<int>>{};
@@ -105,13 +58,12 @@ class DocxParserService {
             newArchive.addFile(zipFile);
           }
         }
-        docxBytes = Uint8List.fromList(ZipEncoder().encode(newArchive)!);
+        docxBytes = Uint8List.fromList(ZipEncoder().encode(newArchive));
       } catch (_) {
         docxBytes = bytes;
       }
     }
 
-    // Convert DOCX to Markdown
     final converter = DocxConverter(docxBytes);
     String markdown = await converter.convert();
 
@@ -198,91 +150,10 @@ class DocxParserService {
     }
 
     // Extract Abstract Paragraphs (Markdown)
-    final abstractMarkdownParagraphs = <String>[];
-    bool collectingAbstract = false;
-
-    for (int i = 0; i < paragraphs.length; i++) {
-      final p = paragraphs[i];
-      final indentMatch = RegExp(r'\[:indent:[^\]]+\]').firstMatch(p);
-      final indentMarker = indentMatch?.group(0) ?? '';
-      final cleanP = p.replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '');
-      final lower = cleanP.toLowerCase();
-
-      final isAbstractHeader = lower == '## abstract' || lower == 'abstract' || lower == '**abstract**' || lower == '*abstract*';
-      final startsWithAbstract = lower.startsWith('abstract:') || lower.startsWith('**abstract:**') || lower.startsWith('*abstract:*');
-
-      if (isAbstractHeader || startsWithAbstract) {
-        collectingAbstract = true;
-        String content = cleanP;
-        if (startsWithAbstract) {
-          content = cleanP.replaceFirst(RegExp(r'^[\s#*_]*abstract[:\s#*_]*', caseSensitive: false), '');
-        } else {
-          continue;
-        }
-        if (content.trim().isNotEmpty) {
-          abstractMarkdownParagraphs.add(indentMarker + content.trim());
-        }
-        continue;
-      }
-
-      if (collectingAbstract) {
-        if (cleanP.startsWith('#') || 
-            lower.startsWith('keywords') || 
-            lower.startsWith('**keywords') || 
-            lower.startsWith('*keywords') ||
-            lower == 'bibliography' ||
-            lower == 'references' ||
-            lower == '## bibliography' ||
-            lower == '## references') {
-          collectingAbstract = false;
-        } else {
-          abstractMarkdownParagraphs.add(p);
-        }
-      }
-    }
+    final abstractMarkdownParagraphs = DocxMetadataExtractor.extractAbstractParagraphs(paragraphs);
 
     // Extract Keywords Paragraphs (Markdown)
-    final keywordsMarkdownParagraphs = <String>[];
-    bool collectingKeywords = false;
-
-    for (int i = 0; i < paragraphs.length; i++) {
-      final p = paragraphs[i];
-      final indentMatch = RegExp(r'\[:indent:[^\]]+\]').firstMatch(p);
-      final indentMarker = indentMatch?.group(0) ?? '';
-      final cleanP = p.replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '');
-      final lower = cleanP.toLowerCase();
-
-      final isKeywordsHeader = lower == '## keywords' || lower == 'keywords' || lower == '**keywords**' || lower == '*keywords*';
-      final startsWithKeywords = lower.startsWith('keywords:') || lower.startsWith('**keywords:**') || lower.startsWith('*keywords:*') || lower.startsWith('keywords ');
-
-      if (isKeywordsHeader || startsWithKeywords) {
-        collectingKeywords = true;
-        String content = cleanP;
-        if (startsWithKeywords) {
-          content = cleanP.replaceFirst(RegExp(r'^[\s#*_]*keywords[:\s#*_]*', caseSensitive: false), '');
-        } else {
-          continue;
-        }
-        if (content.trim().isNotEmpty) {
-          keywordsMarkdownParagraphs.add(indentMarker + content.trim());
-          collectingKeywords = false;
-        }
-        continue;
-      }
-
-      if (collectingKeywords) {
-        if (cleanP.startsWith('#') || 
-            lower == 'bibliography' ||
-            lower == 'references' ||
-            lower == '## bibliography' ||
-            lower == '## references') {
-          collectingKeywords = false;
-        } else {
-          keywordsMarkdownParagraphs.add(p);
-          collectingKeywords = false;
-        }
-      }
-    }
+    final keywordsMarkdownParagraphs = DocxMetadataExtractor.extractKeywordsParagraphs(paragraphs);
 
     // Clean plain text versions
     String cleanHtmlToPlainText(String html) {
@@ -321,44 +192,14 @@ class DocxParserService {
 
 
     // Extract Author Bio and Affiliation
-    String authorBio = '';
-    String authorAffiliation = '';
-    if (authorFullName.isNotEmpty) {
-      final authorParts = authorFullName.trim().split(RegExp(r'\s+'));
-      final authorFirstName = authorParts.isNotEmpty ? authorParts.first : '';
-      final authorLastName = authorParts.length > 1 ? authorParts.last : '';
-      
-      final escapedFullName = RegExp.escape(authorFullName);
-      final escapedFirstLast = authorLastName.isNotEmpty 
-          ? '${RegExp.escape(authorFirstName)}\\s+${RegExp.escape(authorLastName)}'
-          : '';
-      
-      final bioPatterns = [
-        '[^\\w]*$escapedFullName[\\s*_]+is\\b',
-        if (escapedFirstLast.isNotEmpty) '[\\s*_]*$escapedFirstLast[\\s*_]+is\\b',
-      ];
-      
-      final bioRegex = RegExp(bioPatterns.join('|'), caseSensitive: false);
-      for (final p in paragraphs) {
-        if (bioRegex.hasMatch(p)) {
-           final robustP = _convertMarkdownToHtmlRobustly(p);
-           final bioHtml = md.markdownToHtml(robustP, extensionSet: md.ExtensionSet.gitHubFlavored).trim();
-           authorBio = bioHtml.replaceAll(RegExp(r'\[:indent:[^\]]+\]'), '');
-           if (authorBio.startsWith('<p>') && authorBio.endsWith('</p>')) {
-             authorBio = authorBio.substring(3, authorBio.length - 4);
-           }
-           
-           final affMatch = RegExp(
-             r'at\s+(the\s+)?([^.]+University[^.]+|[^.]+Institute[^.]+|[^.]+College[^.]+)',
-             caseSensitive: false,
-           ).firstMatch(p);
-           if (affMatch != null) {
-             authorAffiliation = affMatch.group(2)!.trim();
-           }
-           break;
-        }
-      }
-    }
+    final bioAffInfo = DocxMetadataExtractor.extractBioAndAffiliation(
+      authorFullName: authorFullName,
+      paragraphs: paragraphs,
+      convertMarkdownToHtmlRobustly: _convertMarkdownToHtmlRobustly,
+      cleanHtmlToPlainText: cleanHtmlToPlainText,
+    );
+    String authorBio = bioAffInfo['authorBio']!;
+    String authorAffiliation = bioAffInfo['authorAffiliation']!;
 
     // Load images from ZIP
     final Map<String, String> imageBase64Map = {};
@@ -459,8 +300,7 @@ class DocxParserService {
         }
       }
       
-      // Compile paragraph/element to HTML
-      final preservedText = _preserveLineBreaks(trimmed);
+      final preservedText = trimmed;
       final robustP = _convertMarkdownToHtmlRobustly(preservedText);
       var html = md.markdownToHtml(robustP, extensionSet: md.ExtensionSet.gitHubFlavored).trim();
       if (html.isNotEmpty) {
@@ -585,51 +425,16 @@ class DocxParserService {
     
     // Restore placeholders
     for (int i = 0; i < placeholders.length; i++) {
-      result = result.replaceAll('@@@PLACEHOLDER${i}@@@', placeholders[i]);
+      result = result.replaceAll('@@@PLACEHOLDER$i@@@', placeholders[i]);
     }
     
     return result;
   }
 
-  String _replacePairs(String text, String marker, String openTag, String closeTag) {
-    int index = 0;
-    bool isOpen = false;
-    final buffer = StringBuffer();
-    
-    while (index < text.length) {
-      if (text.startsWith(marker, index)) {
-        if (!isOpen) {
-          buffer.write(openTag);
-          isOpen = true;
-        } else {
-          buffer.write(closeTag);
-          isOpen = false;
-        }
-        index += marker.length;
-      } else {
-        buffer.write(text[index]);
-        index++;
-      }
-    }
-    
-    String result = buffer.toString();
-    if (isOpen) {
-      result += closeTag;
-    }
-    return result;
-  }
+  String _replacePairs(String text, String marker, String openTag, String closeTag) =>
+      StringCleaner.replacePairs(text, marker, openTag, closeTag);
 
-  String _preserveLineBreaks(String text) {
-    return text;
-  }
-
-  String _formatMonYYYY(DateTime date) {
-    final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.year}';
-  }
+  String _formatMonYYYY(DateTime date) => StringCleaner.formatMonYYYY(date);
 
   String _cleanMarkdownLinks(String markdown) {
     // Regex matches [linkText](linkUrl)
@@ -868,7 +673,7 @@ class DocxParserService {
 
     if (styles.isEmpty) return cleanHtml;
 
-    final styleContent = styles.join('; ') + ';';
+    final styleContent = '${styles.join('; ')};';
 
     final cleanTrimmed = cleanHtml.trimLeft();
     final tagRegex = RegExp(r'^<([a-zA-Z0-9]+)([^>]*)>');
@@ -903,11 +708,11 @@ class DocxParserService {
       if (isConvertedToBlockquote) {
         final lastCloseP = contentAndEnd.lastIndexOf('</p>');
         if (lastCloseP != -1) {
-          contentAndEnd = contentAndEnd.substring(0, lastCloseP) + '</blockquote>' + contentAndEnd.substring(lastCloseP + 4);
+          contentAndEnd = '${contentAndEnd.substring(0, lastCloseP)}</blockquote>${contentAndEnd.substring(lastCloseP + 4)}';
         }
       }
 
-      cleanHtml = leadingSpace + '<$tagName$tagAttrs>' + contentAndEnd;
+      cleanHtml = '$leadingSpace<$tagName$tagAttrs>$contentAndEnd';
     }
 
     return cleanHtml;
