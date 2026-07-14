@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
@@ -19,8 +19,8 @@ class GeneratorController extends ChangeNotifier {
   final OjsScraperService ojsScraper = OjsScraperService();
   final HtmlGeneratorService htmlGenerator = HtmlGeneratorService();
 
-  File? _selectedFile;
-  File? get selectedFile => _selectedFile;
+  XFile? _selectedFile;
+  XFile? get selectedFile => _selectedFile;
 
   bool _isScraping = false;
   bool get isScraping => _isScraping;
@@ -245,7 +245,7 @@ class GeneratorController extends ChangeNotifier {
   }
 
   /// Processes dropping a new DOCX file by clearing previous state and parsing.
-  Future<void> processFile(File file, {required void Function(String) onStatus}) async {
+  Future<void> processFile(XFile file, {required void Function(String) onStatus}) async {
     _selectedFile = file;
     
     // Clear editing fields
@@ -275,10 +275,10 @@ class GeneratorController extends ChangeNotifier {
     _articleAbstract = '';
     
     notifyListeners();
-
+ 
     try {
       ArticleMetadata metadata;
-      if (file.path.toLowerCase().endsWith('.docx')) {
+      if (file.name.toLowerCase().endsWith('.docx')) {
         metadata = await docxParser.parse(file);
       } else {
         throw Exception('Unsupported file format. Please upload a DOCX file.');

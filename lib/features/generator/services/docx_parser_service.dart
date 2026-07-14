@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:file_selector/file_selector.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
@@ -10,7 +10,7 @@ import '../utils/string_cleaner.dart';
 import '../utils/docx_metadata_extractor.dart';
 
 class DocxParserService {
-  Future<ArticleMetadata> parse(File file) async {
+  Future<ArticleMetadata> parse(XFile file) async {
     final bytes = await file.readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
 

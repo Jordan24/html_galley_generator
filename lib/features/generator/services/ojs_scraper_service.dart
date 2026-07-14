@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class OjsScrapeResult {
   final String? pdfGalleyId;
@@ -72,7 +73,18 @@ class OjsScraperService {
     String? authorOrcid;
 
     try {
-      final response = await _client.get(Uri.parse(url));
+      http.Response response;
+      try {
+        response = await _client.get(Uri.parse(url));
+      } catch (e) {
+        if (kIsWeb) {
+          final proxiedUrl = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(url)}';
+          response = await _client.get(Uri.parse(proxiedUrl));
+        } else {
+          rethrow;
+        }
+      }
+
       if (response.statusCode == 200) {
         final document = parse(response.body);
 

@@ -1,3 +1,4 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:html_galley_generator/features/generator/services/docx_parser_service.dart';
 import 'package:html_galley_generator/features/generator/services/html_generator_service.dart';
@@ -22,7 +23,7 @@ void main() {
       if (file.existsSync()) file.deleteSync();
     });
     final parser = DocxParserService();
-    final metadata = await parser.parse(file);
+    final metadata = await parser.parse(XFile(file.path));
     
     expect(metadata.title, isNotEmpty);
     expect(metadata.articleBody, isNotEmpty);

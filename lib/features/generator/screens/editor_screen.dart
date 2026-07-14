@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -10,6 +9,7 @@ import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart' as vsc;
 import '../models/article_metadata.dart';
 import '../models/journal_settings.dart';
 import '../services/html_generator_service.dart';
+import '../utils/file_saver.dart';
 
 class EditorScreen extends StatefulWidget {
   final ArticleMetadata metadata;
@@ -117,24 +117,28 @@ class _EditorScreenState extends State<EditorScreen> {
       );
 
       final suggestedName = _htmlGenerator.buildFileName(widget.metadata);
-      final saveLocation = await getSaveLocation(suggestedName: suggestedName);
-
-      if (saveLocation != null) {
-        await File(saveLocation.path).writeAsString(fullHtml);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('HTML Galley saved successfully!')),
-          );
-        }
-      }
+      if (!mounted) return;
+      await saveHtmlGalley(
+        context: context,
+        fullHtml: fullHtml,
+        metadata: widget.metadata,
+        settings: widget.settings,
+        suggestedName: suggestedName,
+        onSavingStateChanged: (saving) {
+          if (mounted) {
+            setState(() => _isSaving = saving);
+          }
+        },
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
       }
-    } finally {
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 

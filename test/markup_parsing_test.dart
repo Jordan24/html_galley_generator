@@ -1,3 +1,4 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:html_galley_generator/features/generator/services/docx_parser_service.dart';
 import 'test_utils.dart';
@@ -18,7 +19,7 @@ void main() {
       });
 
       final parser = DocxParserService();
-      final metadata = await parser.parse(file);
+      final metadata = await parser.parse(XFile(file.path));
 
       // Verify plain text metadata fields
       expect(metadata.title, 'Transnational Politics and Korean Evangelicalism: Affective Infrastructure and History');
@@ -71,7 +72,7 @@ void main() {
       });
 
       final parser = DocxParserService();
-      final metadata = await parser.parse(file);
+      final metadata = await parser.parse(XFile(file.path));
 
       // Verify that the body was successfully parsed and is not empty
       expect(metadata.articleBody.isNotEmpty, true);

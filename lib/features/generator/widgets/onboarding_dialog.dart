@@ -349,10 +349,10 @@ class _OnboardingDialogState extends State<OnboardingDialog> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFCD34D).withOpacity(0.15), // Amber tint
+                          color: const Color(0xFFFCD34D).withValues(alpha: 0.15), // Amber tint
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: const Color(0xFFFCD34D).withOpacity(0.5),
+                            color: const Color(0xFFFCD34D).withValues(alpha: 0.5),
                           ),
                         ),
                         child: Row(

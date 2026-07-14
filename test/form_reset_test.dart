@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -12,7 +12,7 @@ import 'package:html_galley_generator/features/generator/models/article_metadata
 
 class FakeDocxParser extends Fake implements DocxParserService {
   @override
-  Future<ArticleMetadata> parse(File file) async {
+  Future<ArticleMetadata> parse(XFile file) async {
     return ArticleMetadata(
       title: 'Transnational Politics and Korean Evangelicalism: Affective Infrastructure and History',
       author: 'NOH',
@@ -117,7 +117,7 @@ void main() {
     expect(dropZoneFinder, findsOneWidget);
     final dropZone = tester.widget<DropZone>(dropZoneFinder);
 
-    final docxFile = File('dummy.docx');
+    final docxFile = XFile('dummy.docx');
 
     // Call onFilePicked
     await tester.runAsync(() async {

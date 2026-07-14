@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
@@ -15,10 +14,10 @@ class DropZone extends StatefulWidget {
   });
 
   /// The currently loaded DOCX file, or null if none has been loaded.
-  final File? selectedFile;
+  final XFile? selectedFile;
 
-  /// Invoked with the dropped [File] when a DOCX is dropped.
-  final ValueChanged<File> onFilePicked;
+  /// Invoked with the dropped [XFile] when a DOCX is dropped.
+  final ValueChanged<XFile> onFilePicked;
 
   /// Whether file uploading is enabled.
   final bool isEnabled;
@@ -41,7 +40,7 @@ class _DropZoneState extends State<DropZone> {
         acceptedTypeGroups: <XTypeGroup>[typeGroup],
       );
       if (file != null) {
-        widget.onFilePicked(File(file.path));
+        widget.onFilePicked(file);
       }
     } catch (e) {
       debugPrint('Error picking file: $e');
@@ -61,9 +60,9 @@ class _DropZoneState extends State<DropZone> {
         if (!widget.isEnabled) return;
         setState(() => _isHovering = false);
         if (details.files.isNotEmpty) {
-          final file = File(details.files.first.path);
-          final lowerPath = file.path.toLowerCase();
-          if (lowerPath.endsWith('.docx')) {
+          final file = details.files.first;
+          final lowerName = file.name.toLowerCase();
+          if (lowerName.endsWith('.docx')) {
             widget.onFilePicked(file);
           }
         }
@@ -133,7 +132,7 @@ class _DropZoneState extends State<DropZone> {
                         return Text.rich(
                           TextSpan(
                             text: widget.selectedFile != null
-                                ? 'Loaded: ${widget.selectedFile!.path.split(Platform.pathSeparator).last}'
+                                ? 'Loaded: ${widget.selectedFile!.name}'
                                 : 'Drag and drop DOCX to start, or ',
                             style: TextStyle(
                               fontSize: 16,
