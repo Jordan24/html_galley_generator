@@ -40,6 +40,8 @@ void main() {
           articleId: '123',
         );
 
+        expect(result.isSuccess, isTrue);
+        expect(result.errorMessage, isNull);
         expect(result.authorAffiliation, equals('Kwantlen Polytechnic University'));
         expect(result.pdfGalleyId, equals('200'));
         expect(result.issueViewId, equals('16'));
@@ -84,6 +86,8 @@ void main() {
           articleId: '135',
         );
 
+        expect(result.isSuccess, isTrue);
+        expect(result.errorMessage, isNull);
         expect(result.authorAffiliation, equals('Texas State University'));
         expect(result.pdfGalleyId, equals('202'));
         expect(result.issueViewId, equals('16'));
@@ -103,6 +107,8 @@ void main() {
         journalPath: 'ta',
         articleId: '9999999',
       );
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, equals('Server returned status code 404'));
       expect(result.authorAffiliation, isNull);
       expect(result.pdfGalleyId, isNull);
       expect(result.issueViewId, isNull);
@@ -115,6 +121,26 @@ void main() {
         journalPath: '',
         articleId: '',
       );
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, equals('Empty inputs provided.'));
+      expect(result.authorAffiliation, isNull);
+      expect(result.pdfGalleyId, isNull);
+      expect(result.issueViewId, isNull);
+    });
+
+    test('Scrape with network exception should return failure status', () async {
+      final mockClient = MockClient((request) async {
+        throw Exception('Connection failed');
+      });
+
+      final scraper = OjsScraperService(client: mockClient);
+      final result = await scraper.scrapeArticlePage(
+        baseUrl: 'https://transnationalasia.rice.edu',
+        journalPath: 'ta',
+        articleId: '123',
+      );
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, contains('Connection failed'));
       expect(result.authorAffiliation, isNull);
       expect(result.pdfGalleyId, isNull);
       expect(result.issueViewId, isNull);

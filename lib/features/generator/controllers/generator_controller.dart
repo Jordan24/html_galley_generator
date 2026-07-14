@@ -25,6 +25,14 @@ class GeneratorController extends ChangeNotifier {
   bool _isScraping = false;
   bool get isScraping => _isScraping;
 
+  String? _scraperError;
+  String? get scraperError => _scraperError;
+
+  void clearScraperError() {
+    _scraperError = null;
+    notifyListeners();
+  }
+
   String _articleAbstract = '';
   String get articleAbstract => _articleAbstract;
 
@@ -174,6 +182,7 @@ class GeneratorController extends ChangeNotifier {
     final path = journalPathCtrl.text;
 
     _isScraping = true;
+    _scraperError = null;
     notifyListeners();
 
     try {
@@ -182,6 +191,11 @@ class GeneratorController extends ChangeNotifier {
         journalPath: path,
         articleId: articleId,
       );
+
+      if (!result.isSuccess) {
+        _scraperError = result.errorMessage ?? 'Failed to retrieve metadata from OJS server.';
+        return;
+      }
 
       bool isDefaultOrEmpty(String text, String defaultVal) {
         final trimmed = text.trim();
@@ -236,8 +250,8 @@ class GeneratorController extends ChangeNotifier {
       if (result.modifiedDate != null && isDefaultOrEmpty(modifiedDateCtrl.text, todayStr)) {
         modifiedDateCtrl.text = result.modifiedDate!;
       }
-    } catch (_) {
-      // Ignore scraper failures to keep heuristics non-disruptive
+    } catch (e) {
+      _scraperError = 'Failed to connect to the OJS server: $e';
     } finally {
       _isScraping = false;
       notifyListeners();

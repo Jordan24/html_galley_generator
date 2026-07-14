@@ -16,6 +16,8 @@ class OjsScrapeResult {
   final String? issue;
   final String? publicationId;
   final String? authorOrcid;
+  final bool isSuccess;
+  final String? errorMessage;
 
   OjsScrapeResult({
     this.pdfGalleyId,
@@ -31,6 +33,8 @@ class OjsScrapeResult {
     this.issue,
     this.publicationId,
     this.authorOrcid,
+    this.isSuccess = false,
+    this.errorMessage,
   });
 }
 
@@ -49,7 +53,7 @@ class OjsScraperService {
     required String articleId,
   }) async {
     if (baseUrl.isEmpty || journalPath.isEmpty || articleId.isEmpty) {
-      return OjsScrapeResult();
+      return OjsScrapeResult(isSuccess: false, errorMessage: 'Empty inputs provided.');
     }
 
     // Ensure baseUrl doesn't end with a slash for consistent construction
@@ -71,6 +75,8 @@ class OjsScraperService {
     String? issue;
     String? publicationId;
     String? authorOrcid;
+    bool isSuccess = false;
+    String? errorMessage;
 
     try {
       http.Response response;
@@ -78,14 +84,46 @@ class OjsScraperService {
         response = await _client.get(Uri.parse(url));
       } catch (e) {
         if (kIsWeb) {
-          final proxiedUrl = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(url)}';
-          response = await _client.get(Uri.parse(proxiedUrl));
+          final proxies = [
+            'https://corsproxy.io/?${Uri.encodeComponent(url)}',
+            'https://api.allorigins.win/raw?url=${Uri.encodeComponent(url)}',
+            'https://api.codetabs.com/v1/proxy?quest=${Uri.encodeComponent(url)}',
+          ];
+
+          http.Response? proxyResponse;
+          Object? lastError;
+
+          for (final proxiedUrl in proxies) {
+            try {
+              final resp = await _client.get(Uri.parse(proxiedUrl));
+              if (resp.statusCode == 200) {
+                final trimmedBody = resp.body.trim();
+                if (!trimmedBody.startsWith('{"error":')) {
+                  proxyResponse = resp;
+                  break;
+                }
+              }
+            } catch (err) {
+              lastError = err;
+            }
+          }
+
+          if (proxyResponse != null) {
+            response = proxyResponse;
+          } else {
+            if (lastError != null) {
+              throw lastError;
+            } else {
+              throw Exception('All CORS proxies failed to fetch the URL.');
+            }
+          }
         } else {
           rethrow;
         }
       }
 
       if (response.statusCode == 200) {
+        isSuccess = true;
         final document = parse(response.body);
 
         final pubIdMatch = RegExp(r'publicationId=(\d+)').firstMatch(response.body);
@@ -234,9 +272,11 @@ class OjsScraperService {
             }
           }
         }
+      } else {
+        errorMessage = 'Server returned status code ${response.statusCode}';
       }
     } catch (e) {
-      // Failed to scrape
+      errorMessage = e.toString();
     }
     return OjsScrapeResult(
       pdfGalleyId: pdfGalleyId,
@@ -252,6 +292,8 @@ class OjsScraperService {
       issue: issue,
       publicationId: publicationId,
       authorOrcid: authorOrcid,
+      isSuccess: isSuccess,
+      errorMessage: errorMessage,
     );
   }
 }
