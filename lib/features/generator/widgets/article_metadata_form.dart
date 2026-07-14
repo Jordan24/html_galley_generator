@@ -21,6 +21,7 @@ class ArticleMetadataForm extends StatelessWidget {
     required this.titleMainCtrl,
     required this.keywordsCtrl,
     required this.articleBodyCtrl,
+    this.isEnabled = true,
   });
 
   final TextEditingController titleCtrl;
@@ -40,6 +41,7 @@ class ArticleMetadataForm extends StatelessWidget {
   final TextEditingController titleMainCtrl;
   final TextEditingController keywordsCtrl;
   final TextEditingController articleBodyCtrl;
+  final bool isEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -50,19 +52,24 @@ class ArticleMetadataForm extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         side: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Article Metadata',
+      child: IgnorePointer(
+        ignoring: !isEnabled,
+        child: Opacity(
+          opacity: isEnabled ? 1.0 : 0.5,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Article Metadata',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 24),
             LabeledTextField(
               label: 'Article Title',
               controller: titleCtrl,
+              isRequired: true,
             ),
             LabeledTextField(
               label: 'Title Main',
@@ -74,6 +81,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Volume',
                     controller: volumeCtrl,
+                    isRequired: true,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -81,6 +89,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Issue',
                     controller: issueCtrl,
+                    isRequired: true,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -88,6 +97,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Article ID',
                     controller: articleIdCtrl,
+                    isRequired: true,
                   ),
                 ),
               ],
@@ -105,6 +115,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Publication ID',
                     controller: publicationIdCtrl,
+                    isRequired: true,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -112,6 +123,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Issue View ID',
                     controller: issueViewIdCtrl,
+                    isRequired: true,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -119,6 +131,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'PDF Galley ID',
                     controller: pdfGalleyIdCtrl,
+                    isRequired: true,
                   ),
                 ),
               ],
@@ -129,6 +142,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Published (ISO)',
                     controller: publishedDateCtrl,
+                    isRequired: true,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -143,6 +157,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Date (Mon YYYY)',
                     controller: publishedDateMonYYYYCtrl,
+                    isRequired: true,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -150,6 +165,7 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Year',
                     controller: publishYearCtrl,
+                    isRequired: true,
                   ),
                 ),
               ],
@@ -219,6 +235,8 @@ class ArticleMetadataForm extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

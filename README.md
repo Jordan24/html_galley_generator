@@ -1,9 +1,9 @@
 # HTML Galley Generator
 
-An open-source macOS and Windows Flutter desktop application that automates the creation of Open Journal Systems (OJS) HTML "Galley Wrapper" files from PDF inputs.
+An open-source macOS and Windows Flutter desktop application that automates the creation of Open Journal Systems (OJS) HTML "Galley Wrapper" files from DOCX inputs.
 
 ## Features
-- **PDF Metadata Extraction**: Drag and drop a PDF file to automatically extract Title, Author, Volume, Issue, and DOI/Article ID.
+- **DOCX Metadata Extraction**: Drag and drop a DOCX file to automatically extract Title, Author, Volume, Issue, and DOI/Article ID.
 - **Customizable Fields**: Edit any extracted fields before generating the HTML.
 - **Journal Settings Persistence**: Remembers your Journal Base URL and Path across sessions so you don't have to re-enter them.
 - **Automated File Naming**: Generates the output filename matching standard formatting (e.g. `Vol+7+No+1_2_COLLINS_Archives+as+Bridges.html`).
@@ -41,5 +41,9 @@ We welcome contributions! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) for 
 ## Code of Conduct
 Please note that this project is released with a Contributor [Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
+## Support
+If you find this tool helpful, feel free to [buy me a coffee](https://buymeacoffee.com/thejambers).
+
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+

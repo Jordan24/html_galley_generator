@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/generator_controller.dart';
 import '../services/docx_parser_service.dart';
@@ -25,6 +26,9 @@ class GeneratorScreen extends StatefulWidget {
 
 class _GeneratorScreenState extends State<GeneratorScreen> {
   late final GeneratorController _controller;
+
+  // Public getter for testing
+  GeneratorController get controller => _controller;
 
   @override
   void initState() {
@@ -53,8 +57,25 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     final metadata = _controller.currentMetadata;
     final settings = _controller.currentSettings;
 
-    if (metadata.articleId.isEmpty) {
-      _showSnackBar('Please provide an Article ID.');
+    final List<String> missingFields = [];
+    if (_controller.selectedFile == null) missingFields.add('DOCX File');
+    if (settings.journalName.trim().isEmpty) missingFields.add('Journal Name');
+    if (settings.journalBaseUrl.trim().isEmpty) missingFields.add('Journal Base URL');
+    if (settings.journalPath.trim().isEmpty) missingFields.add('Journal Path');
+    if (metadata.title.trim().isEmpty) missingFields.add('Article Title');
+    if (metadata.authorFullName.trim().isEmpty) missingFields.add('Author Full Name');
+    if (metadata.volume.trim().isEmpty) missingFields.add('Volume');
+    if (metadata.issue.trim().isEmpty) missingFields.add('Issue');
+    if (metadata.articleId.trim().isEmpty) missingFields.add('Article ID');
+    if (metadata.publicationId.trim().isEmpty) missingFields.add('Publication ID');
+    if (metadata.issueViewId.trim().isEmpty) missingFields.add('Issue View ID');
+    if (metadata.pdfGalleyId.trim().isEmpty) missingFields.add('PDF Galley ID');
+    if (metadata.publishedDate.trim().isEmpty) missingFields.add('Published Date (ISO)');
+    if (metadata.publishedDateMonYYYY.trim().isEmpty) missingFields.add('Date (Mon YYYY)');
+    if (metadata.publishYear.trim().isEmpty) missingFields.add('Year');
+
+    if (missingFields.isNotEmpty) {
+      _showSnackBar('Please fill in all required fields: ${missingFields.join(', ')}');
       return;
     }
 
@@ -79,7 +100,58 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   @override
   Widget build(BuildContext context) {
     final metadata = _controller.currentMetadata;
+    final settings = _controller.currentSettings;
     final fileName = _controller.htmlGenerator.buildFileName(metadata);
+
+    final isUploadEnabled = settings.journalBaseUrl.trim().isNotEmpty &&
+        settings.journalPath.trim().isNotEmpty;
+
+    final List<String> missingFields = [];
+    if (_controller.selectedFile == null) {
+      missingFields.add('DOCX File');
+    }
+    if (settings.journalName.trim().isEmpty) {
+      missingFields.add('Journal Name');
+    }
+    if (settings.journalBaseUrl.trim().isEmpty) {
+      missingFields.add('Journal Base URL');
+    }
+    if (settings.journalPath.trim().isEmpty) {
+      missingFields.add('Journal Path');
+    }
+    if (metadata.title.trim().isEmpty) {
+      missingFields.add('Article Title');
+    }
+    if (metadata.authorFullName.trim().isEmpty) {
+      missingFields.add('Author Full Name');
+    }
+    if (metadata.volume.trim().isEmpty) {
+      missingFields.add('Volume');
+    }
+    if (metadata.issue.trim().isEmpty) {
+      missingFields.add('Issue');
+    }
+    if (metadata.articleId.trim().isEmpty) {
+      missingFields.add('Article ID');
+    }
+    if (metadata.publicationId.trim().isEmpty) {
+      missingFields.add('Publication ID');
+    }
+    if (metadata.issueViewId.trim().isEmpty) {
+      missingFields.add('Issue View ID');
+    }
+    if (metadata.pdfGalleyId.trim().isEmpty) {
+      missingFields.add('PDF Galley ID');
+    }
+    if (metadata.publishedDate.trim().isEmpty) {
+      missingFields.add('Published Date (ISO)');
+    }
+    if (metadata.publishedDateMonYYYY.trim().isEmpty) {
+      missingFields.add('Date (Mon YYYY)');
+    }
+    if (metadata.publishYear.trim().isEmpty) {
+      missingFields.add('Year');
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FB),
@@ -104,15 +176,24 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
               children: [
                 DropZone(
                   selectedFile: _controller.selectedFile,
+                  isEnabled: isUploadEnabled,
                   onFilePicked: (file) => _controller.processFile(
                     file,
                     onStatus: _showSnackBar,
                   ),
                 ),
                 const SizedBox(height: 32),
-                OutputPreviewBar(fileName: fileName, onGenerate: _generateHtml),
+                OutputPreviewBar(
+                  fileName: fileName,
+                  onGenerate: _generateHtml,
+                  isFileUploaded: _controller.selectedFile != null,
+                  missingFields: missingFields,
+                ),
                 const SizedBox(height: 32),
                 _buildFormLayout(isWide, isMedium),
+                const SizedBox(height: 48),
+                const Divider(),
+                _buildFooter(context),
               ],
             ),
           );
@@ -121,7 +202,70 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     );
   }
 
+  Widget _buildFooter(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 24,
+          runSpacing: 12,
+          children: [
+            _buildFooterLink(
+              label: 'OPEN SOURCE CODE',
+              url: 'https://github.com/Jordan24/html_galley_generator',
+            ),
+            const Text(
+              '•',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            _buildFooterLink(
+              label: 'MIT License',
+              url: 'https://opensource.org/licenses/MIT',
+            ),
+            const Text(
+              '•',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            _buildFooterLink(
+              label: '☕ Buy me a coffee',
+              url: 'https://buymeacoffee.com/thejambers',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterLink({required String label, required String url}) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () async {
+          final uri = Uri.parse(url);
+          try {
+            await launchUrl(uri);
+          } catch (e) {
+            _showSnackBar('Could not launch URL: $url');
+          }
+        },
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF475569),
+            fontWeight: FontWeight.w500,
+            decoration: TextDecoration.underline,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFormLayout(bool isWide, bool isMedium) {
+    final isFileUploaded = _controller.selectedFile != null;
+
     final authorForm = AuthorMetadataForm(
       authorFullNameCtrl: _controller.authorFullNameCtrl,
       authorFirstNameCtrl: _controller.authorFirstNameCtrl,
@@ -129,6 +273,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       authorOrcidCtrl: _controller.authorOrcidCtrl,
       authorAffiliationCtrl: _controller.authorAffiliationCtrl,
       authorBioQuill: _controller.authorBioQuill,
+      isEnabled: isFileUploaded,
     );
 
     final articleForm = ArticleMetadataForm(
@@ -149,6 +294,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
       titleMainCtrl: _controller.titleMainCtrl,
       keywordsCtrl: _controller.keywordsCtrl,
       articleBodyCtrl: _controller.articleBodyCtrl,
+      isEnabled: isFileUploaded,
     );
 
     final settingsForm = SettingsForm(

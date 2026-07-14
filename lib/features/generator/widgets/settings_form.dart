@@ -45,10 +45,12 @@ class SettingsForm extends StatelessWidget {
             LabeledTextField(
               label: 'Journal Name',
               controller: journalNameCtrl,
+              isRequired: true,
             ),
             LabeledTextField(
               label: 'Journal Base URL',
               controller: journalBaseUrlCtrl,
+              isRequired: true,
             ),
             Row(
               children: [
@@ -63,6 +65,7 @@ class SettingsForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Journal Path',
                     controller: journalPathCtrl,
+                    isRequired: true,
                   ),
                 ),
               ],

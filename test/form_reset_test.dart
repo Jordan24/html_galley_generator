@@ -49,10 +49,8 @@ void main() {
 
   Finder findTextFieldByLabel(String labelText) {
     return find.descendant(
-      of: find.ancestor(
-        of: find.text(labelText),
-        matching: find.byType(LabeledTextField),
-      ),
+      of: find.byWidgetPredicate((widget) =>
+          widget is LabeledTextField && widget.label == labelText),
       matching: find.byType(TextField),
     );
   }
@@ -89,6 +87,11 @@ void main() {
       ),
     );
 
+    // Setup required settings fields before testing
+    final generatorState = tester.state(find.byType(GeneratorScreen)) as dynamic;
+    generatorState.controller.journalNameCtrl.text = 'Test Journal';
+    generatorState.controller.journalBaseUrlCtrl.text = 'https://test-journal.com';
+    generatorState.controller.journalPathCtrl.text = 'test';
     await tester.pumpAndSettle();
 
     // 1. Manually populate some fields as if from a previous run

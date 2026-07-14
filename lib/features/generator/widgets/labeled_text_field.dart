@@ -8,12 +8,14 @@ class LabeledTextField extends StatelessWidget {
     required this.controller,
     this.maxLines = 1,
     this.suffix,
+    this.isRequired = false,
   });
 
   final String label;
   final TextEditingController controller;
   final int maxLines;
   final Widget? suffix;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -22,12 +24,25 @@ class LabeledTextField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF475569),
+          Text.rich(
+            TextSpan(
+              text: label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF475569),
+              ),
+              children: [
+                if (isRequired)
+                  const TextSpan(
+                    text: ' *',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 8),

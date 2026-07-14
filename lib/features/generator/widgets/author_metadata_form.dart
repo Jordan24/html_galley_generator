@@ -13,6 +13,7 @@ class AuthorMetadataForm extends StatefulWidget {
     required this.authorOrcidCtrl,
     required this.authorAffiliationCtrl,
     required this.authorBioQuill,
+    this.isEnabled = true,
   });
 
   final TextEditingController authorFullNameCtrl;
@@ -21,6 +22,7 @@ class AuthorMetadataForm extends StatefulWidget {
   final TextEditingController authorOrcidCtrl;
   final TextEditingController authorAffiliationCtrl;
   final QuillController authorBioQuill;
+  final bool isEnabled;
 
   @override
   State<AuthorMetadataForm> createState() => _AuthorMetadataFormState();
@@ -113,19 +115,24 @@ class _AuthorMetadataFormState extends State<AuthorMetadataForm> {
         borderRadius: BorderRadius.circular(8),
         side: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Author Details',
+      child: IgnorePointer(
+        ignoring: !widget.isEnabled,
+        child: Opacity(
+          opacity: widget.isEnabled ? 1.0 : 0.5,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Author Details',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 24),
             LabeledTextField(
               label: 'Full Name',
               controller: widget.authorFullNameCtrl,
+              isRequired: true,
             ),
             Row(
               children: [
@@ -272,6 +279,8 @@ class _AuthorMetadataFormState extends State<AuthorMetadataForm> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

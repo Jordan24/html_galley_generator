@@ -29,12 +29,13 @@ class FakeDocxParser extends Fake implements DocxParserService {
       issue: '1',
       articleId: '101',
       submissionId: '101',
-      issueViewId: '',
-      pdfGalleyId: '',
-      publishedDate: '',
-      issuedDate: '',
-      publishedDateMonYYYY: '',
-      publishYear: '',
+      publicationId: '201',
+      issueViewId: '301',
+      pdfGalleyId: '401',
+      publishedDate: '2026-07-14',
+      issuedDate: '2026-07-14',
+      publishedDateMonYYYY: 'Jul 2026',
+      publishYear: '2026',
       submittedDate: '',
       modifiedDate: '',
       titleMain: 'Transnational Politics and Korean Evangelicalism',
@@ -65,6 +66,13 @@ void main() {
         home: GeneratorScreen(docxParser: fakeDocxParser),
       ),
     );
+
+    // Setup required settings fields before file picking
+    final generatorState = tester.state(find.byType(GeneratorScreen)) as dynamic;
+    generatorState.controller.journalNameCtrl.text = 'Test Journal';
+    generatorState.controller.journalBaseUrlCtrl.text = 'https://test-journal.com';
+    generatorState.controller.journalPathCtrl.text = 'test';
+    await tester.pump();
 
     // Find DropZone
     final dropZoneFinder = find.byType(DropZone);

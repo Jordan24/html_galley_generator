@@ -309,6 +309,7 @@ class GeneratorController extends ChangeNotifier {
       pdfGalleyIdCtrl.text = metadata.pdfGalleyId;
       articleIdCtrl.text = metadata.articleId;
       submissionIdCtrl.text = metadata.submissionId;
+      publicationIdCtrl.text = metadata.publicationId;
       publishedDateCtrl.text = metadata.publishedDate;
       issuedDateCtrl.text = metadata.issuedDate;
       publishedDateMonYYYYCtrl.text = metadata.publishedDateMonYYYY;
