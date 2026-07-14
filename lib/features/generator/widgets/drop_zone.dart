@@ -3,20 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
 
-/// A drag-and-drop zone that accepts PDF and DOCX files.
+/// A drag-and-drop zone that accepts DOCX files.
 ///
-/// Calls [onFilePicked] when a valid PDF or DOCX is dropped onto the widget.
+/// Calls [onFilePicked] when a valid DOCX is dropped onto the widget.
 class DropZone extends StatefulWidget {
   const DropZone({
     super.key,
-    required this.selectedPdf,
+    required this.selectedFile,
     required this.onFilePicked,
   });
 
-  /// The currently loaded PDF or DOCX file, or null if none has been loaded.
-  final File? selectedPdf;
+  /// The currently loaded DOCX file, or null if none has been loaded.
+  final File? selectedFile;
 
-  /// Invoked with the dropped [File] when a PDF or DOCX is dropped.
+  /// Invoked with the dropped [File] when a DOCX is dropped.
   final ValueChanged<File> onFilePicked;
 
   @override
@@ -29,7 +29,7 @@ class _DropZoneState extends State<DropZone> {
   Future<void> _pickFile() async {
     const XTypeGroup typeGroup = XTypeGroup(
       label: 'documents',
-      extensions: <String>['pdf', 'docx'],
+      extensions: <String>['docx'],
     );
     try {
       final XFile? file = await openFile(
@@ -53,7 +53,7 @@ class _DropZoneState extends State<DropZone> {
         if (details.files.isNotEmpty) {
           final file = File(details.files.first.path);
           final lowerPath = file.path.toLowerCase();
-          if (lowerPath.endsWith('.pdf') || lowerPath.endsWith('.docx')) {
+          if (lowerPath.endsWith('.docx')) {
             widget.onFilePicked(file);
           }
         }
@@ -93,16 +93,16 @@ class _DropZoneState extends State<DropZone> {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text.rich(
                       TextSpan(
-                        text: widget.selectedPdf != null
-                            ? 'Loaded: ${widget.selectedPdf!.path.split(Platform.pathSeparator).last}'
-                            : 'Drag and drop PDF or DOCX to start, or ',
+                        text: widget.selectedFile != null
+                            ? 'Loaded: ${widget.selectedFile!.path.split(Platform.pathSeparator).last}'
+                            : 'Drag and drop DOCX to start, or ',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.blueGrey[700],
                           fontWeight: FontWeight.w500,
                         ),
                         children: [
-                          if (widget.selectedPdf == null) ...[
+                          if (widget.selectedFile == null) ...[
                             const TextSpan(
                               text: 'click to browse',
                               style: TextStyle(
@@ -118,7 +118,7 @@ class _DropZoneState extends State<DropZone> {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  if (widget.selectedPdf != null) ...[
+                  if (widget.selectedFile != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       'Drag a new file or click here to browse',

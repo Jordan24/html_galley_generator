@@ -64,6 +64,10 @@ class ArticleMetadataForm extends StatelessWidget {
               label: 'Article Title',
               controller: titleCtrl,
             ),
+            LabeledTextField(
+              label: 'Title Main',
+              controller: titleMainCtrl,
+            ),
             Row(
               children: [
                 Expanded(
@@ -163,13 +167,6 @@ class ArticleMetadataForm extends StatelessWidget {
                   child: LabeledTextField(
                     label: 'Modified Date',
                     controller: modifiedDateCtrl,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: LabeledTextField(
-                    label: 'Title Main',
-                    controller: titleMainCtrl,
                   ),
                 ),
               ],

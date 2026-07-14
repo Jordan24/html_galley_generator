@@ -9,20 +9,18 @@ import '../models/article_metadata.dart';
 import '../models/journal_settings.dart';
 import '../services/html_generator_service.dart';
 import '../services/ojs_scraper_service.dart';
-import '../services/pdf_parser_service.dart';
 import '../services/docx_parser_service.dart';
 
 /// Manages metadata editing state, settings persistence, scraping operations,
 /// and document ingestion independent of the UI layer.
 class GeneratorController extends ChangeNotifier {
-  final PdfParserService pdfParser;
   final DocxParserService docxParser;
   final SettingsRepository settingsRepo = SettingsRepository();
   final OjsScraperService ojsScraper = OjsScraperService();
   final HtmlGeneratorService htmlGenerator = HtmlGeneratorService();
 
-  File? _selectedPdf;
-  File? get selectedPdf => _selectedPdf;
+  File? _selectedFile;
+  File? get selectedFile => _selectedFile;
 
   bool _isScraping = false;
   bool get isScraping => _isScraping;
@@ -66,10 +64,8 @@ class GeneratorController extends ChangeNotifier {
   final supportingOrganizationCtrl = TextEditingController();
 
   GeneratorController({
-    PdfParserService? pdfParser,
     DocxParserService? docxParser,
-  })  : pdfParser = pdfParser ?? PdfParserService(),
-        docxParser = docxParser ?? DocxParserService() {
+  })  : docxParser = docxParser ?? DocxParserService() {
     _init();
   }
 
@@ -248,9 +244,9 @@ class GeneratorController extends ChangeNotifier {
     }
   }
 
-  /// Processes dropping a new PDF or DOCX file by clearing previous state and parsing.
+  /// Processes dropping a new DOCX file by clearing previous state and parsing.
   Future<void> processFile(File file, {required void Function(String) onStatus}) async {
-    _selectedPdf = file;
+    _selectedFile = file;
     
     // Clear editing fields
     titleCtrl.clear();
@@ -282,12 +278,10 @@ class GeneratorController extends ChangeNotifier {
 
     try {
       ArticleMetadata metadata;
-      if (file.path.toLowerCase().endsWith('.pdf')) {
-        metadata = await pdfParser.parse(file);
-      } else if (file.path.toLowerCase().endsWith('.docx')) {
+      if (file.path.toLowerCase().endsWith('.docx')) {
         metadata = await docxParser.parse(file);
       } else {
-        throw Exception('Unsupported file format');
+        throw Exception('Unsupported file format. Please upload a DOCX file.');
       }
 
       titleCtrl.text = metadata.title.replaceAll(
@@ -330,7 +324,7 @@ class GeneratorController extends ChangeNotifier {
       onStatus('Document parsed successfully!');
     } catch (e, stack) {
       debugPrint('Failed to parse document: $e\n$stack');
-      _selectedPdf = null;
+      _selectedFile = null;
       notifyListeners();
       onStatus('Failed to parse document: $e');
     }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../controllers/generator_controller.dart';
 import '../services/docx_parser_service.dart';
-import '../services/pdf_parser_service.dart';
 import '../widgets/article_metadata_form.dart';
 import '../widgets/author_metadata_form.dart';
 import '../widgets/drop_zone.dart';
@@ -14,12 +13,10 @@ import 'editor_screen.dart';
 /// to the [GeneratorController] for document ingestion and state updates.
 class GeneratorScreen extends StatefulWidget {
   final DocxParserService? docxParser;
-  final PdfParserService? pdfParser;
 
   const GeneratorScreen({
     super.key,
     this.docxParser,
-    this.pdfParser,
   });
 
   @override
@@ -34,7 +31,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     super.initState();
     _controller = GeneratorController(
       docxParser: widget.docxParser,
-      pdfParser: widget.pdfParser,
     );
     _controller.loadSettings();
     _controller.addListener(_onControllerChanged);
@@ -107,7 +103,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DropZone(
-                  selectedPdf: _controller.selectedPdf,
+                  selectedFile: _controller.selectedFile,
                   onFilePicked: (file) => _controller.processFile(
                     file,
                     onStatus: _showSnackBar,
@@ -167,41 +163,41 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     );
 
     if (isWide) {
-      // 3 Columns: Author | Article | Journal
+      // 3 Columns: Journal | Author | Article
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Expanded(flex: 2, child: settingsForm),
+          const SizedBox(width: 24),
           Expanded(flex: 2, child: authorForm),
           const SizedBox(width: 24),
           Expanded(flex: 3, child: articleForm),
-          const SizedBox(width: 24),
-          Expanded(flex: 2, child: settingsForm),
         ],
       );
     } else if (isMedium) {
-      // 2 Columns: Article | [Author + Journal]
+      // 2 Columns: [Journal + Author] | Article
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 3, child: articleForm),
-          const SizedBox(width: 24),
           Expanded(
             flex: 2,
             child: Column(
-              children: [authorForm, const SizedBox(height: 24), settingsForm],
+              children: [settingsForm, const SizedBox(height: 24), authorForm],
             ),
           ),
+          const SizedBox(width: 24),
+          Expanded(flex: 3, child: articleForm),
         ],
       );
     } else {
-      // 1 Column: Author -> Article -> Journal
+      // 1 Column: Journal -> Author -> Article
       return Column(
         children: [
+          settingsForm,
+          const SizedBox(height: 24),
           authorForm,
           const SizedBox(height: 24),
           articleForm,
-          const SizedBox(height: 24),
-          settingsForm,
         ],
       );
     }
