@@ -69,7 +69,9 @@ class _DropZoneState extends State<DropZone> {
         }
       },
       child: MouseRegion(
-        cursor: widget.isEnabled ? SystemMouseCursors.click : SystemMouseCursors.forbidden,
+        cursor: widget.isEnabled
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.forbidden,
         child: InkWell(
           onTap: widget.isEnabled ? _pickFile : null,
           borderRadius: BorderRadius.circular(8),
@@ -80,15 +82,15 @@ class _DropZoneState extends State<DropZone> {
               color: !widget.isEnabled
                   ? const Color(0xFFF1F5F9)
                   : _isHovering
-                      ? const Color(0xFFF2F4F6)
-                      : Colors.white,
+                  ? const Color(0xFFF2F4F6)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: !widget.isEnabled
                     ? const Color(0xFFE2E8F0)
                     : _isHovering
-                        ? const Color(0xFF334155)
-                        : const Color(0xFFCBD5E1),
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFCBD5E1),
                 width: 2,
               ),
               boxShadow: [
@@ -103,6 +105,7 @@ class _DropZoneState extends State<DropZone> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 16),
                   Icon(
                     widget.isEnabled ? Icons.upload_file : Icons.lock_outline,
                     size: 48,
@@ -112,7 +115,7 @@ class _DropZoneState extends State<DropZone> {
                   ),
                   const SizedBox(height: 16),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const .symmetric(horizontal: 16.0),
                     child: Builder(
                       builder: (context) {
                         if (!widget.isEnabled) {
@@ -160,7 +163,10 @@ class _DropZoneState extends State<DropZone> {
                     const SizedBox(height: 8),
                     Text(
                       'Drag a new file or click here to browse',
-                      style: TextStyle(fontSize: 13, color: Colors.blueGrey[500]),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blueGrey[500],
+                      ),
                     ),
                   ],
                 ],

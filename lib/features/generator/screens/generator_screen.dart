@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../widgets/onboarding_dialog.dart';
 import '../controllers/generator_controller.dart';
 import '../services/docx_parser_service.dart';
 import '../widgets/article_metadata_form.dart';
@@ -38,6 +40,25 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
     );
     _controller.loadSettings();
     _controller.addListener(_onControllerChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowOnboarding();
+    });
+  }
+
+  Future<void> _checkAndShowOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasShown = prefs.getBool('hasShownOnboarding') ?? false;
+    if (!hasShown && mounted) {
+      _showOnboardingDialog();
+    }
+  }
+
+  void _showOnboardingDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => const OnboardingDialog(),
+    );
   }
 
   void _onControllerChanged() {
@@ -162,6 +183,14 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         ),
         backgroundColor: Colors.white,
         scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded),
+            tooltip: 'How to Use & Tips',
+            onPressed: _showOnboardingDialog,
+          ),
+          const SizedBox(width: 16),
+        ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {

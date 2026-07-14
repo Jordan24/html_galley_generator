@@ -45,7 +45,9 @@ class FakeDocxParser extends Fake implements DocxParserService {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'hasShownOnboarding': true,
+    });
   });
 
   testWidgets('Generate HTML Galley from parsed DOCX', (WidgetTester tester) async {

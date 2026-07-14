@@ -44,7 +44,9 @@ class FakeDocxParser extends Fake implements DocxParserService {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'hasShownOnboarding': true,
+    });
   });
 
   Finder findTextFieldByLabel(String labelText) {
