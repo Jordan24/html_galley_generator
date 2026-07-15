@@ -40,6 +40,7 @@ void main() {
     expect(find.text('Verify & Auto-Fill Metadata'), findsOneWidget);
     expect(find.text('Generate & Preview'), findsOneWidget);
     expect(find.text('Pro Tips for Perfect Formatting'), findsOneWidget);
+    expect(find.text('galleygenerator@thejambers.com'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>

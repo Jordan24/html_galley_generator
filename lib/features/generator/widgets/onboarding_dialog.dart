@@ -397,6 +397,32 @@ class _OnboardingDialogState extends State<OnboardingDialog> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => _launchUrlHelper(
+                            'mailto:galleygenerator@thejambers.com'),
+                        icon: const Icon(
+                          Icons.mail_outline_rounded,
+                          size: 18,
+                          color: Color(0xFF475569),
+                        ),
+                        label: const Text(
+                          'galleygenerator@thejambers.com',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            color: Color(0xFF475569),
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF475569),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
